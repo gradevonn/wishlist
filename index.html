@@ -173,15 +173,15 @@
    (бронь сохраняется только в браузере открывшего). Как заполнить —
    смотри инструкцию, которую я прислал в чат.
 ═══════════════════════════════════════════════════════════════════ */
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAb11eW85shtMOX1_yb8_OdUrnmTq2F8ZY",
-  authDomain: "wishlist-2d25a.firebaseapp.com",
-  projectId: "wishlist-2d25a",
-  storageBucket: "wishlist-2d25a.firebasestorage.app",
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAb11eW85shtMOX1_yb8_OdUrnmTq2F8ZY",
+  authDomain:        "wishlist-2d25a.firebaseapp.com",
+  databaseURL:       "https://wishlist-2d25a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "wishlist-2d25a",
+  storageBucket:     "wishlist-2d25a.firebasestorage.app",
   messagingSenderId: "305421729934",
-  appId: "1:305421729934:web:897b26d8afad804cbb49df",
-  measurementId: "G-FTJ88TL660"
+  appId:             "1:305421729934:web:897b26d8afad804cbb49df",
+  measurementId:     "G-FTJ88TL660"
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -196,6 +196,7 @@ const ITEMS = [
 
   { id:"ereader", chip:"Гаджет", icon:"ereader", hue:245,
     title:"Электронная книга 4.0″, слоновая кость",
+    img:"https://www.xteink.com/cdn/shop/files/3_23c30e7f-e418-4f98-b591-4605ebd516a6.jpg?v=1782381175&width=800",
     url:"https://www.ozon.ru/product/4-0-elektronnaya-kniga-belyy-slonovaya-kost-3915860584/?at=46tRVzEDmTOlx82xfPA24q0H4xK1j3t9oYMROf9k6QKk&is_apparel_size_selected=true" },
 
   { id:"fiio-echo", chip:"Аудио", icon:"player", hue:200,
@@ -220,17 +221,19 @@ const ITEMS = [
 
   { id:"balatro", chip:"Switch", icon:"cart", hue:230,
     title:"Balatro (Switch) + коллекционные карточки",
+    img:"https://cdn.cloudflare.steamstatic.com/steam/apps/2379780/header.jpg",
     url:"https://www.avito.ru/orel/igry_pristavki_i_programmy/balatro_switch_s_kol._kartochkami_8077255659" },
 
   { id:"ff-collection", chip:"Switch", icon:"cart", hue:250,
     title:"Final Fantasy Collection 1–6, Nintendo Switch",
+    img:"https://cdn.cloudflare.steamstatic.com/steam/apps/1173820/header.jpg",
     url:"https://www.avito.ru/nizhniy_novgorod/igry_pristavki_i_programmy/final_fantasy_collection_1-6_nintendo_switch_8072886215" },
 
   { id:"switch2", chip:"Мечта", icon:"console", hue:265,
     title:"Nintendo Switch 2",
-    img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Nintendo_Switch_2_console_in_handheld_mode.png/800px-Nintendo_Switch_2_console_in_handheld_mode.png",
+    img:"https://www.shopitree.com/cdn/shop/files/Nintendo-Switch-2-Stand-Alone-1.jpg?v=1772765044&width=800",
     note:"если вам совсем денег не жалко и я, очевидно, охуел ))",
-    url:"https://www.avito.ru/odintsovo/igry_pristavki_i_programmy/nintendo_switch_2_8207057988" },
+    url:"https://www.avito.ru/nizhniy_novgorod/igry_pristavki_i_programmy/nintendo_switch_2_kartridzhi_8289146119?context=H4sIAAAAAAAA_0q0MrKqLrYytlIqLkpWsi62srRSSkssyy_KLEktBvENrZQqQLSRkZWSZXBBpLGzX3pIuX-KgbF_emZ5dliYo5J1LSAAAP__464V-UYAAAA" },
 
   { id:"cards-hp", chip:"Карты", icon:"cards", hue:215,
     title:"theory11 · Harry Potter, красные (Гриффиндор)",
@@ -291,8 +294,6 @@ document.getElementById("total").textContent=ITEMS.length;
 
 /* ── общее состояние + отрисовка ── */
 let state={};
-let toggle=()=>{};
-
 function applyState(){
   let n=0;
   ITEMS.forEach(it=>{
@@ -305,42 +306,43 @@ function applyState(){
   document.getElementById("count").textContent=n;
 }
 
-/* ── локальный режим (запасной) ── */
-function useLocal(){
-  const KEY="wishlist_reserved_v1";
-  try{ state=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){ state={}; }
-  toggle=(id)=>{
-    if(state[id]) delete state[id]; else state[id]=true;
+/* backend по умолчанию — локальный (бронь хранится в этом браузере).
+   Всегда готов к работе, поэтому тумблеры реагируют сразу. */
+const KEY="wishlist_reserved_v1";
+try{ state=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){ state={}; }
+let backend={
+  toggle(id){
+    if(state[id]) delete state[id]; else state[id]={ts:Date.now()};
     try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
     applyState();
-  };
-  applyState();
-}
+  }
+};
+/* стабильная точка входа для тумблеров — всегда указывает на текущий backend */
+function toggle(id){ backend.toggle(id); }
+applyState();
 
-/* ── облачный режим (Firebase) ── */
-const cloudReady = FIREBASE_CONFIG.databaseURL && !/ВСТАВЬ/.test(FIREBASE_CONFIG.databaseURL);
-if(cloudReady){
+/* если Firebase настроен — на лету переключаемся на общий режим */
+(async ()=>{
+  const cfg=FIREBASE_CONFIG;
+  if(!cfg.databaseURL || /ВСТАВЬ/.test(cfg.databaseURL)) return; // остаёмся в локальном режиме
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getDatabase, ref, onValue, set, remove } =
       await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-    const db = getDatabase(initializeApp(FIREBASE_CONFIG));
-    const base = ref(db, "reservations");
-    onValue(base, snap=>{ state = snap.val() || {}; applyState(); });
-    toggle = (id)=>{
-      if(state[id]) remove(ref(db,"reservations/"+id));
-      else set(ref(db,"reservations/"+id), { ts: Date.now() });
+    const db = getDatabase(initializeApp(cfg));
+    backend={
+      toggle(id){
+        if(state[id]) remove(ref(db,"reservations/"+id));
+        else set(ref(db,"reservations/"+id), { ts: Date.now() });
+      }
     };
-    const s=document.getElementById("sync");
-    s.classList.add("cloud");
+    onValue(ref(db,"reservations"), snap=>{ state = snap.val() || {}; applyState(); });
+    document.getElementById("sync").classList.add("cloud");
     document.getElementById("syncText").textContent="Общий режим — бронь видят все гости";
   }catch(e){
-    console.error("Firebase недоступен, локальный режим:", e);
-    useLocal();
+    console.error("Firebase недоступен, остаётся локальный режим:", e);
   }
-}else{
-  useLocal();
-}
+})();
 </script>
 </body>
 </html>
