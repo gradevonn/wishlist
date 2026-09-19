@@ -536,12 +536,33 @@ export class Showroom {
   /* Модели грузятся один раз, дальше по сцене расходятся клоны. */
   async #loadModels() {
     const loader = new GLTFLoader();
+
+    /* onProgress третьим аргументом: по нему загрузочный экран
+       считает настоящие байты, а не изображает занятость. */
+    const seen = new Map();
+    const report = (name) => (e) => {
+      seen.set(name, e.loaded || 0);
+      let total = 0;
+      seen.forEach((v) => (total += v));
+      this.handlers.onBytes?.(total);
+    };
+
     const load = (name) =>
       new Promise((res, rej) =>
-        loader.load(`./scene/models/${name}.glb`, res, undefined, rej)
+        loader.load(`./scene/models/${name}.glb`, res, report(name), rej)
       );
 
-    const gltfs = await Promise.all(MODEL_FILES.map(load));
+    /* Гонка с таймаутом обязательна. loader.load отклоняет промис
+       только на ошибке загрузчика: если соединение живо, а байты
+       кончились — captive portal, севшая LTE, отвалившийся VPN, —
+       он не отклонит НИЧЕГО и не позовёт onFail. Тогда витрина
+       висит пустой комнатой навсегда. */
+    const gltfs = await Promise.race([
+      Promise.all(MODEL_FILES.map(load)),
+      new Promise((_, rej) =>
+        setTimeout(() => rej(new Error("модели не приехали за 15 секунд")), 15000)
+      ),
+    ]);
 
     return gltfs.map((gltf, i) => {
       const root = gltf.scene;

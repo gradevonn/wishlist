@@ -912,3 +912,532 @@ html.is-proj body {
     opacity: 1;
   }
 }
+
+/* ── Загрузочный экран ───────────────────────────────────────────
+   Включается телевизор: щелчок, прогрев трубки, снег, захват
+   сигнала, настроечная таблица, заставка канала, выключение
+   в точку.
+
+   Раскадровку ведёт CSS, а не скрипт. Скрипт умеет только одно —
+   повесить .is-locked раньше потолка и тем укоротить снег. Уводит
+   занавес анимация, запущенная с первого кадра: даже если скрипт
+   умрёт посреди загрузки, слой уйдёт сам.
+
+   Без скрипта класса .is-booting нет вовсе — и занавеса нет.
+   Сломаться тут не на чем.
+
+   --k — множитель вступления: на повторном заходе в той же сессии
+   всё то же самое, только вшестеро быстрее.                      */
+
+.boot {
+  display: none;
+}
+
+.is-booting .boot {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* выше всего: у .proj 60, у шапки 5 */
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--void);
+  --k: 1; /* множитель вступления */
+  --kt: 1; /* множитель хвоста: от захвата сигнала до ухода */
+  --p: 0;
+  /* Аварийный уход. Запущен с первого кадра и ни от чего не
+     зависит: сломался скрипт, не пришло событие, зависла сеть —
+     занавес всё равно уедет. */
+  animation: boot-bail 600ms linear 11000ms forwards;
+}
+
+/* Повторный заход в той же сессии: то же самое, только быстро.
+   Аппарат уже прогрет — представляться второй раз незачем. */
+[data-boot="warm"] .boot {
+  --k: 0.185;
+  --kt: 0.55;
+}
+
+/* Пятно света на полу — из него появляется корпус. */
+.boot__pool {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(150vh, 190vw);
+  height: min(150vh, 190vw);
+  transform: translate(-50%, -46%);
+  background: radial-gradient(
+    closest-side,
+    rgba(150, 170, 196, 0.13),
+    rgba(150, 170, 196, 0.04) 46%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  opacity: 0;
+  animation: boot-fade calc(420ms * var(--k)) ease-out calc(180ms * var(--k))
+    forwards;
+}
+
+.boot__set {
+  position: relative;
+  width: min(52vh, 84vw, 470px);
+  aspect-ratio: var(--tw) / var(--th);
+  opacity: 0;
+  transform: scale(1.03);
+  animation: boot-set calc(370ms * var(--k)) cubic-bezier(0.2, 0.7, 0.3, 1)
+    calc(180ms * var(--k)) forwards;
+}
+
+.boot__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Дежурный светодиод. Красный — аппарат ждёт, зелёный — нажали.
+   Переключается одним кадром: плавность тут читалась бы как веб. */
+.boot__led {
+  position: absolute;
+  right: 7.5%;
+  bottom: 15.5%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--tally);
+  box-shadow: 0 0 7px rgba(216, 68, 60, 0.9);
+  animation: boot-led 1ms steps(1) calc(420ms * var(--k)) forwards;
+}
+
+/* Стекло. Те же доли, что у .tv__screen, — дырка совпадает
+   с рамкой, потому что это одни и те же числа. */
+.boot__screen {
+  position: absolute;
+  left: calc(var(--sx) * 100%);
+  top: calc(var(--sy) * 100%);
+  width: calc(var(--sw) * 100%);
+  height: calc(var(--sh) * 100%);
+  overflow: hidden;
+  isolation: isolate;
+  background: #05070a;
+  transform: scaleX(0.002) scaleY(0.004);
+  animation: boot-open calc(400ms * var(--k)) cubic-bezier(0.85, 0, 0.15, 1)
+    calc(550ms * var(--k)) forwards;
+}
+
+/* Содержимое всегда на 6% больше стекла: кинескоп работает
+   с овер-сканом, края уходят под маску. */
+.boot__raster {
+  position: absolute;
+  inset: 0;
+  transform: scale(1.06);
+  /* прогрев люминофора: вымытая зеленца уходит в нейтраль */
+  filter: brightness(0.45) saturate(0.2) hue-rotate(35deg);
+  animation: boot-warm calc(400ms * var(--k)) ease-out calc(950ms * var(--k))
+    forwards;
+}
+
+.boot__snow,
+.boot__bars,
+.boot__logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.boot__snow {
+  image-rendering: pixelated;
+  object-fit: cover;
+}
+
+/* Настроечная таблица: SMPTE 75%. Единственное насыщенное пятно
+   на всём сайте — по чёрному бьёт как надо. */
+.boot__bars {
+  opacity: 0;
+  /* Вещательный стандарт — 75%, но через развёртку, маску и
+     виньетку он садится в грязь. Поднимаем, чтобы на маленьком
+     стекле полосы читались как полосы. */
+  background: linear-gradient(
+    90deg,
+    #e6e6e6 0 14.28%,
+    #e6e600 14.28% 28.57%,
+    #00e0e0 28.57% 42.85%,
+    #00d000 42.85% 57.14%,
+    #e000e0 57.14% 71.42%,
+    #e01010 71.42% 85.71%,
+    #2020e6 85.71% 100%
+  );
+}
+
+.boot__logo {
+  opacity: 0;
+  object-fit: contain;
+  padding: 12% 9%;
+  box-sizing: border-box;
+}
+
+/* Кадровая полоса: синхронизация ещё не поймана. Чем больше
+   приехало, тем спокойнее она ползёт. */
+.boot__roll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 22%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.07) 45%,
+    rgba(255, 255, 255, 0.12) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  animation: boot-roll 1.7s linear infinite;
+}
+
+[data-p="p-1"] .boot__roll {
+  animation-duration: 2.6s;
+}
+
+[data-p="p-2"] .boot__roll {
+  animation-duration: 4.2s;
+}
+
+/* Строчная развёртка и завал по краям — те же, что у аппаратов
+   в галерее: язык один. */
+.boot__scan,
+.boot__vignette,
+.boot__flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.boot__scan {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.26) 0 1px,
+    rgba(0, 0, 0, 0) 1px 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+.boot__vignette {
+  background: radial-gradient(
+    118% 118% at 50% 50%,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.66) 100%
+  );
+}
+
+/* Белый кадр на вспышке в момент захвата и на резе. */
+.boot__flash {
+  background: #fff;
+  opacity: 0;
+}
+
+/* Экранное меню вещательного монитора. */
+.boot__osd {
+  position: absolute;
+  left: 5%;
+  bottom: 6%;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(0.5rem, 1.5vw, 0.62rem);
+  letter-spacing: 0.14em;
+  color: var(--phosphor);
+  text-shadow: 0 0 6px rgba(190, 220, 200, 0.5);
+  opacity: 0;
+  animation: boot-fade calc(300ms * var(--k)) ease-out calc(1350ms * var(--k))
+    forwards;
+}
+
+/* ── Сигнал пойман. Дальше всё по фиксированным тактам ───────── */
+
+/* Снег и кадровая полоса гаснут мгновенно, без перехода. Переход
+   тут был бы красивее, но он, как и анимации, замирает в скрытой
+   вкладке — и шум остался бы висеть под заставкой. Да и по сути
+   это момент захвата сигнала: резкая смена честнее плавной. */
+.boot.is-locked .boot__roll,
+.boot.is-locked .boot__snow {
+  animation: none;
+  opacity: 0;
+}
+
+.boot.is-locked .boot__raster {
+  animation: boot-sync calc(220ms * var(--kt)) steps(1) forwards;
+}
+
+.boot.is-locked .boot__flash {
+  animation: boot-flash calc(220ms * var(--kt)) linear forwards,
+    boot-flash calc(100ms * var(--kt)) linear calc(920ms * var(--kt));
+}
+
+.boot.is-locked .boot__bars {
+  animation: boot-bars calc(700ms * var(--kt)) linear calc(220ms * var(--kt))
+    forwards;
+}
+
+.boot.is-locked .boot__logo {
+  animation: boot-ident calc(900ms * var(--kt)) cubic-bezier(0.16, 0.8, 0.3, 1)
+    calc(1020ms * var(--kt)) forwards;
+}
+
+.boot.is-locked .boot__osd {
+  animation: boot-osd calc(900ms * var(--kt)) ease-out calc(220ms * var(--kt))
+    forwards;
+}
+
+/* ── Выключение ──────────────────────────────────────────────────
+   Развёртка умирает раньше анода: картинка схлопывается по
+   вертикали в ослепительную полосу, полоса в точку, точка
+   догорает поверх уже проявившегося сайта.                      */
+
+.boot.is-off {
+  pointer-events: none;
+  animation: boot-leave calc(630ms * var(--kt)) ease-in forwards;
+}
+
+.boot.is-off .boot__screen {
+  animation: boot-collapse calc(630ms * var(--kt))
+    cubic-bezier(0.7, 0, 0.9, 0.2) forwards;
+}
+
+.boot.is-off .boot__set,
+.boot.is-off .boot__pool {
+  animation: boot-dim 380ms ease-in 150ms forwards;
+}
+
+@keyframes boot-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes boot-set {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes boot-led {
+  to {
+    background: #5fd08a;
+    box-shadow: 0 0 7px rgba(95, 208, 138, 0.9);
+  }
+}
+
+/* Кинескоп бьёт: сначала строка на всю ширину, короткая пауза,
+   потом растр распахивается по вертикали с перелётом. */
+@keyframes boot-open {
+  0% {
+    transform: scaleX(0.002) scaleY(0.004);
+    filter: brightness(2.6);
+  }
+  22% {
+    transform: scaleX(1) scaleY(0.004);
+    filter: brightness(2.6);
+  }
+  37% {
+    transform: scaleX(1) scaleY(0.004);
+    filter: brightness(2.2);
+  }
+  82% {
+    transform: scaleX(1) scaleY(1.06);
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: scaleX(1) scaleY(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes boot-warm {
+  to {
+    filter: brightness(1) saturate(1) hue-rotate(0deg);
+  }
+}
+
+@keyframes boot-roll {
+  from {
+    transform: translateY(-120%);
+  }
+  to {
+    transform: translateY(560%);
+  }
+}
+
+/* Захват синхронизации: перекос выправляется ступенями,
+   покадровой коррекцией, а не плавным ходом. */
+@keyframes boot-sync {
+  0% {
+    transform: scale(1.06) skewX(7deg);
+  }
+  33% {
+    transform: scale(1.06) skewX(-3deg);
+  }
+  66% {
+    transform: scale(1.06) skewX(1deg);
+  }
+  100% {
+    transform: scale(1.06) skewX(0deg);
+  }
+}
+
+@keyframes boot-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes boot-bars {
+  0% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Заставка канала. Яркий кадр нагружает анод, высокое
+   просаживается — картинка коротко вырастает и садится. */
+@keyframes boot-ident {
+  0% {
+    opacity: 0;
+    transform: scale(1.012);
+    filter: brightness(1.6);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1.012);
+    filter: brightness(1.25);
+  }
+  38% {
+    opacity: 1;
+    transform: scale(1.004);
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.004);
+    filter: brightness(1);
+  }
+}
+
+@keyframes boot-osd {
+  0% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes boot-collapse {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    filter: brightness(1) saturate(1);
+  }
+  24% {
+    transform: scaleY(0.006) scaleX(1);
+    filter: brightness(5) saturate(0);
+  }
+  40% {
+    transform: scaleY(0.006) scaleX(0.018);
+    filter: brightness(7) saturate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.006) scaleX(0.018);
+    filter: brightness(7) saturate(0);
+    opacity: 0;
+  }
+}
+
+@keyframes boot-dim {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Сайт проявляется ПОД точкой: последние полсекунды зритель
+   смотрит на живую страницу, где просто ещё тлеет пиксель. */
+@keyframes boot-leave {
+  0% {
+    opacity: 1;
+  }
+  36% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@keyframes boot-bail {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* ── Анимацию попросили не показывать ────────────────────────────
+   Никакой раскадровки: корпус сразу с заставкой на экране, держит
+   момент и растворяется. Но анимация именно НАСТОЯЩАЯ, пусть и
+   короткая, — чтобы все ветки заканчивались одинаково.          */
+
+[data-boot="still"] .boot__pool,
+[data-boot="still"] .boot__set,
+[data-boot="still"] .boot__screen,
+[data-boot="still"] .boot__raster,
+[data-boot="still"] .boot__osd,
+[data-boot="still"] .boot__led {
+  animation: none;
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+[data-boot="still"] .boot__screen {
+  transform: none;
+}
+
+[data-boot="still"] .boot__raster {
+  transform: scale(1.06);
+}
+
+[data-boot="still"] .boot__snow,
+[data-boot="still"] .boot__roll,
+[data-boot="still"] .boot__bars,
+[data-boot="still"] .boot__osd {
+  display: none;
+}
+
+[data-boot="still"] .boot__logo,
+[data-boot="still"] .boot.is-locked .boot__logo {
+  animation: none;
+  opacity: 1;
+}
+
+[data-boot="still"] .boot.is-off,
+[data-boot="still"] .boot.is-off .boot__screen,
+[data-boot="still"] .boot.is-off .boot__set,
+[data-boot="still"] .boot.is-off .boot__pool {
+  animation: boot-dim 240ms linear forwards;
+}
+
+[data-boot="still"] .boot.is-off {
+  animation: boot-bail 240ms linear forwards;
+}

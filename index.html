@@ -23,8 +23,84 @@
          открываются не всегда. Внешних запросов у сайта нет вовсе. -->
     <link rel="stylesheet" href="./assets/fonts/fonts.css" />
     <link rel="stylesheet" href="./styles.css" />
+
+    <!-- Картинки загрузочного экрана нужны раньше всего остального -->
+    <link rel="preload" as="image" href="./assets/tv/panasonic.webp" />
+    <link rel="preload" as="image" href="./assets/logo-boot.webp" />
+
+    <!-- Режим загрузочного экрана выбирается ДО стилей.
+         Без скрипта класса нет, занавеса нет, сайт открывается
+         как обычно: сломаться тут не на чем. -->
+    <script>
+      (function () {
+        var d = document.documentElement;
+        var mode = "cold";
+        try {
+          if (sessionStorage.getItem("rerun-seen")) mode = "warm";
+          sessionStorage.setItem("rerun-seen", "1");
+        } catch (e) {
+          /* приватный режим, встроенный браузер телеграма — не беда */
+        }
+        /* ?boot=full — полный монтаж на десять секунд, ?boot=cold —
+           как при первом заходе. Удобно показывать и удобно править,
+           не вычищая хранилище. */
+        try {
+          var ask = /[?&]boot=(cold|warm|full|still|off)/.exec(location.search);
+          if (ask) mode = ask[1];
+        } catch (e) {}
+        if (mode === "off") return;
+        try {
+          if (
+            mode === "cold" &&
+            window.matchMedia &&
+            matchMedia("(prefers-reduced-motion: reduce)").matches
+          )
+            mode = "still";
+        } catch (e) {}
+        d.setAttribute("data-boot", mode);
+        d.classList.add("is-booting");
+      })();
+    </script>
   </head>
   <body>
+    <!-- ── Загрузочный экран ─────────────────────────────────────
+         Включается телевизор. Слой перекрывает страницу, пока она
+         собирается: раньше зритель успевал увидеть три состояния
+         подряд — сначала мобильную галерею, потом пустую тёмную
+         комнату, потом гору. Теперь всё это происходит ПОД ним.
+         Числа в style — те же, что у панасоника в TV_FRAMES
+         (script.js): дырка под стекло совпадает с рамкой, потому
+         что это буквально одни и те же доли. ── -->
+    <div class="boot" id="boot" aria-hidden="true">
+      <span class="boot__pool"></span>
+      <div
+        class="boot__set"
+        style="--tw: 800; --th: 775; --sx: 0.09563; --sy: 0.09097; --sw: 0.80875; --sh: 0.64323"
+      >
+        <span class="boot__screen">
+          <span class="boot__raster">
+            <canvas class="boot__snow"></canvas>
+            <span class="boot__bars"></span>
+            <img class="boot__logo" src="./assets/logo-boot.webp" alt="" />
+          </span>
+          <span class="boot__roll"></span>
+          <span class="boot__scan"></span>
+          <span class="boot__vignette"></span>
+          <span class="boot__flash"></span>
+          <p class="boot__osd"></p>
+        </span>
+        <img
+          class="boot__frame"
+          src="./assets/tv/panasonic.webp"
+          alt=""
+          width="800"
+          height="775"
+        />
+        <span class="boot__led"></span>
+      </div>
+    </div>
+    <script src="./boot.js"></script>
+
     <!-- ── Шапка: имя, фраза, язык. Больше сверху ничего. ── -->
     <header class="topbar" id="top">
       <a class="topbar__brand" href="#top">re::run</a>

@@ -8,16 +8,27 @@ import { Showroom } from "./showroom.js";
 
 const MIN_WIDTH = 1024;
 
+/* Проба WebGL. Считаем один раз и сразу отпускаем контекст: живых
+   контекстов у браузера считанные единицы, а shouldMount() зовётся
+   ещё и на каждое изменение размера окна. Пробников натекало
+   столько, что настоящей витрине могло не хватить. */
+let webglProbe = null;
 function webglAvailable() {
+  if (webglProbe !== null) return webglProbe;
   try {
     const c = document.createElement("canvas");
-    return !!(
+    const gl =
       window.WebGLRenderingContext &&
-      (c.getContext("webgl2") || c.getContext("webgl"))
-    );
+      (c.getContext("webgl2") || c.getContext("webgl"));
+    if (gl && gl.getExtension) {
+      const lose = gl.getExtension("WEBGL_lose_context");
+      if (lose) lose.loseContext();
+    }
+    webglProbe = !!gl;
   } catch (e) {
-    return false;
+    webglProbe = false;
   }
+  return webglProbe;
 }
 
 function shouldMount() {
@@ -28,6 +39,20 @@ function shouldMount() {
 }
 
 const state = { showroom: null, lang: "ru" };
+
+/* Витрина сообщает о себе наружу — этим живёт загрузочный экран.
+   Флаг ставим синхронно, событие шлём следом: кто подписался
+   позже, читает флаг и не ждёт события, которое уже прошло.
+     skip  — витрины не будет: телефон, нет WebGL, узкое окно
+     mount — поднимаем, модели поехали
+     ready — гора собрана
+     fail  — не сложилось, вернулись к галерее */
+function announce(phase) {
+  window.RERUN_SHOWROOM = phase;
+  window.dispatchEvent(
+    new CustomEvent("rerun:showroom", { detail: { phase } })
+  );
+}
 
 const el = {
   grid: document.querySelector("#work-grid"),
@@ -131,22 +156,44 @@ function mount() {
   document.documentElement.classList.add("is-showroom");
   el.hint.textContent = T[state.lang].loading;
 
-  state.showroom = new Showroom(el.canvas, data.projects, {
-    onReady: () => {
-      el.hint.textContent = T[state.lang].hint;
-    },
-    // Модели не приехали — возвращаем сетку. Пустая комната
-    // хуже плоского списка работ.
-    onFail: () => unmount(),
-    onFocus: (project, index) => {
-      renderPanel(project, index, data.projects.length);
-      el.hint.classList.add("is-dim");
-    },
-    onBlur: () => {
-      hidePanel();
-      el.hint.classList.remove("is-dim");
-    },
-  });
+  announce("mount");
+
+  /* Конструктор может бросить: контекст WebGL иногда не создаётся,
+     даже когда проба прошла, — перезапустился GPU-процесс, кончились
+     контексты, не собрался шейдер. Без перехвата страница осталась бы
+     с уже спрятанной галереей и пустой сценой навсегда. */
+  try {
+    state.showroom = new Showroom(el.canvas, data.projects, {
+      onReady: () => {
+        el.hint.textContent = T[state.lang].hint;
+        announce("ready");
+      },
+      // байты моделей — по ним загрузочный экран считает прогресс
+      onBytes: (n) => {
+        window.RERUN_BYTES = n;
+      },
+      // Модели не приехали — возвращаем сетку. Пустая комната
+      // хуже плоского списка работ.
+      onFail: () => {
+        unmount();
+        announce("fail");
+      },
+      onFocus: (project, index) => {
+        renderPanel(project, index, data.projects.length);
+        el.hint.classList.add("is-dim");
+      },
+      onBlur: () => {
+        hidePanel();
+        el.hint.classList.remove("is-dim");
+      },
+    });
+  } catch (err) {
+    console.error("[showroom] сцена не поднялась", err);
+    state.showroom = null;
+    unmount();
+    announce("fail");
+    return;
+  }
 
   // ручка наружу: удобно щупать сцену из консоли
   window.RERUN.showroom = state.showroom;
@@ -176,6 +223,7 @@ window.addEventListener("rerun:lang", (e) => {
 function watch() {
   if (state.showroom) return;
   if (shouldMount()) mount();
+  else if (!window.RERUN_SHOWROOM) announce("skip");
 }
 
 /* Ушли скроллом с витрины — закрываем проект. Витрина теперь
