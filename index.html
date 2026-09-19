@@ -1,348 +1,106 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Вишлист · День рождения</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f4f6fc;
-    --card:#ffffff;
-    --ink:#191b33;
-    --muted:#6b7196;
-    --blue:#3b6ef5;
-    --indigo:#5a55e2;
-    --purple:#8b5cf6;
-    --line:rgba(25,27,51,.08);
-    --shadow-soft:
-      0 1px 2px rgba(25,27,51,.04),
-      0 10px 30px rgba(59,110,245,.09),
-      0 4px 10px rgba(139,92,246,.06);
-    --shadow-lift:
-      0 2px 4px rgba(25,27,51,.05),
-      0 22px 48px rgba(59,110,245,.16),
-      0 8px 18px rgba(139,92,246,.10);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-  body{
-    font-family:'Onest',system-ui,-apple-system,sans-serif;
-    color:var(--ink);
-    background:
-      radial-gradient(1200px 600px at 15% -10%, rgba(139,92,246,.14), transparent 60%),
-      radial-gradient(1000px 560px at 100% 0%, rgba(59,110,245,.14), transparent 55%),
-      var(--bg);
-    min-height:100vh;
-    padding:clamp(20px,5vw,64px) clamp(16px,4vw,48px) 80px;
-    line-height:1.5;
-  }
-  .wrap{max-width:1160px;margin:0 auto}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>re::run — внешняя команда постпродакшена</title>
+    <meta
+      name="description"
+      data-i18n="meta.description"
+      content="Внешняя команда постпродакшена для студий и агентств. Постпрод и ИИ целиком на нас."
+    />
+    <meta name="theme-color" content="#14161a" />
 
-  header{margin-bottom:clamp(28px,5vw,52px)}
-  .kicker{
-    display:inline-flex;align-items:center;gap:8px;
-    font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--indigo);
-    background:rgba(90,85,226,.09);
-    padding:7px 14px;border-radius:100px;margin-bottom:20px;
-  }
-  .kicker::before{content:"";width:7px;height:7px;border-radius:50%;
-    background:linear-gradient(135deg,var(--blue),var(--purple))}
-  h1{
-    font-family:'Unbounded',sans-serif;font-weight:800;
-    font-size:clamp(34px,7vw,68px);line-height:1.02;letter-spacing:-.02em;
-    background:linear-gradient(120deg,var(--ink) 30%,var(--indigo) 70%,var(--purple));
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  }
-  .sub{margin-top:16px;font-size:clamp(15px,2.2vw,18px);color:var(--muted);max-width:560px}
-  .stat{
-    margin-top:24px;display:inline-flex;align-items:center;gap:10px;
-    font-size:14px;font-weight:500;color:var(--muted);
-    background:var(--card);padding:10px 18px;border-radius:100px;
-    box-shadow:var(--shadow-soft);
-  }
-  .stat b{color:var(--ink);font-weight:600}
-  .dot{width:9px;height:9px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple))}
-  .sync{
-    margin-top:14px;display:inline-flex;align-items:center;gap:8px;
-    font-size:12.5px;color:var(--muted);opacity:.9;
-  }
-  .sync .led{width:8px;height:8px;border-radius:50%;background:#c3c8dd}
-  .sync.cloud .led{background:#37c98d;box-shadow:0 0 0 4px rgba(55,201,141,.16)}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="re::run — внешняя команда постпродакшена" />
+    <meta
+      property="og:description"
+      content="У вас проект. У вас нет рук. Дальше — наша проблема."
+    />
+    <meta property="og:image" content="./assets/work/vkfest.jpg" />
 
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));
-    gap:clamp(16px,2.4vw,26px);
-  }
-
-  .card{
-    background:var(--card);border-radius:26px;padding:14px;
-    box-shadow:var(--shadow-soft);
-    display:flex;flex-direction:column;
-    transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;
-    opacity:0;transform:translateY(16px);
-    animation:rise .6s cubic-bezier(.2,.8,.2,1) forwards;
-    position:relative;
-  }
-  @keyframes rise{to{opacity:1;transform:none}}
-  .card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lift)}
-
-  .thumb{
-    position:relative;width:100%;aspect-ratio:4/3;border-radius:18px;
-    overflow:hidden;cursor:pointer;border:none;padding:0;display:block;
-    background:linear-gradient(150deg,#eef2ff,#f6f0ff);
-    transition:filter .35s;
-  }
-  .thumb .icon{position:absolute;inset:0}
-  .thumb .icon svg{width:100%;height:100%;display:block}
-  .thumb .photo{
-    position:absolute;inset:0;width:100%;height:100%;
-    object-fit:contain;background:#fff;padding:6px;z-index:1;
-  }
-  .thumb::after{
-    content:"Открыть ↗";position:absolute;inset:auto 10px 10px auto;z-index:2;
-    font-size:12px;font-weight:600;color:#fff;
-    background:rgba(25,27,51,.62);backdrop-filter:blur(6px);
-    padding:6px 11px;border-radius:100px;
-    opacity:0;transform:translateY(6px);transition:.28s;
-  }
-  .card:hover .thumb::after{opacity:1;transform:none}
-
-  .body{padding:16px 8px 8px;display:flex;flex-direction:column;flex:1}
-  .chip{
-    align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:.03em;
-    text-transform:uppercase;color:var(--indigo);
-    background:rgba(90,85,226,.09);padding:5px 11px;border-radius:100px;margin-bottom:12px;
-  }
-  .title{font-size:16.5px;font-weight:600;line-height:1.28;letter-spacing:-.01em}
-  .note{margin-top:8px;font-size:13.5px;color:var(--muted);font-style:italic;line-height:1.4}
-
-  .reserve{
-    margin-top:auto;padding-top:18px;display:flex;align-items:center;
-    justify-content:space-between;gap:12px;
-  }
-  .reserve-label{font-size:14px;font-weight:500;color:var(--muted);transition:color .25s}
-  .toggle{
-    --w:52px;--h:30px;position:relative;width:var(--w);height:var(--h);
-    flex:none;cursor:pointer;border:none;padding:0;border-radius:100px;
-    background:#e6e9f5;transition:background .3s;
-  }
-  .toggle::before{
-    content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
-    background:#fff;box-shadow:0 2px 6px rgba(25,27,51,.22);
-    transition:transform .3s cubic-bezier(.2,.9,.2,1.2);
-  }
-  .card.on .toggle{background:linear-gradient(135deg,var(--blue),var(--purple))}
-  .card.on .toggle::before{transform:translateX(22px)}
-  .card.on .reserve-label{color:var(--indigo);font-weight:600}
-  .card.on .thumb{filter:saturate(.55) brightness(1.02)}
-  .card.on::before{
-    content:"Забронировано";position:absolute;top:22px;left:22px;z-index:3;
-    font-size:12px;font-weight:600;color:#fff;
-    background:linear-gradient(135deg,var(--blue),var(--purple));
-    padding:6px 12px;border-radius:100px;
-    box-shadow:0 6px 16px rgba(90,85,226,.35);
-  }
-
-  footer{margin-top:56px;text-align:center;font-size:13.5px;color:var(--muted)}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <span class="kicker">Список желаний</span>
-    <h1>Мой вишлист<br>ко дню рождения</h1>
-    <p class="sub">Выбери, что понравится — и переключи тумблер «забронировать», чтобы другие видели, что подарок уже занят. По клику на картинку откроется страница товара.</p>
-    <div class="stat"><span class="dot"></span><span>Забронировано: <b id="count">0</b> из <b id="total">0</b></span></div>
-    <div class="sync" id="sync"><span class="led"></span><span id="syncText">Локальный режим (бронь видна только на этом устройстве)</span></div>
-  </header>
-
-  <div class="grid" id="grid"></div>
-
-  <footer>Спасибо, что заглянул(а) 💜 &nbsp;·&nbsp; собрано с любовью</footer>
-</div>
-
-<script type="module">
-/* ═══════════════════════════════════════════════════════════════════
-   1. ОБЩАЯ БРОНЬ ДЛЯ ВСЕХ ГОСТЕЙ  (Firebase Realtime Database)
-   Пока поля ниже не заполнены — сайт работает в локальном режиме
-   (бронь сохраняется только в браузере открывшего). Как заполнить —
-   смотри инструкцию, которую я прислал в чат.
-═══════════════════════════════════════════════════════════════════ */
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyAb11eW85shtMOX1_yb8_OdUrnmTq2F8ZY",
-  authDomain:        "wishlist-2d25a.firebaseapp.com",
-  databaseURL:       "https://wishlist-2d25a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:         "wishlist-2d25a",
-  storageBucket:     "wishlist-2d25a.firebasestorage.app",
-  messagingSenderId: "305421729934",
-  appId:             "1:305421729934:web:897b26d8afad804cbb49df",
-  measurementId:     "G-FTJ88TL660"
-};
-
-/* ═══════════════════════════════════════════════════════════════════
-   2. СПИСОК ПОДАРКОВ. img — ссылка на фото (можно вставить свою);
-   если img нет или фото не загрузилось — покажется стилизованная иконка.
-═══════════════════════════════════════════════════════════════════ */
-const ITEMS = [
-  { id:"moft-stand", chip:"Аксессуар", icon:"stand", hue:210,
-    title:"MOFT Snap Flow — подставка с блокнотом",
-    img:"https://www.moft.com/cdn/shop/files/MagSafe_notepad_5c717b99-91f5-49ed-a3c7-0e81696e3229.png?v=1762780979&width=800",
-    url:"https://www.ozon.ru/product/magnitnaya-podstavka-s-zapisnoy-knizhkoy-moft-snap-flow-notepad-stand-l-raskladnoy-l-sero-oranzhevyy-1763248318/?at=oZt6nD5gBhOyr1nDIxn0O1Hpkyko9sDG94XMI7QEplK&is_apparel_size_selected=true" },
-
-  { id:"ereader", chip:"Гаджет", icon:"ereader", hue:245,
-    title:"Электронная книга 4.0″, слоновая кость",
-    img:"https://www.xteink.com/cdn/shop/files/3_23c30e7f-e418-4f98-b591-4605ebd516a6.jpg?v=1782381175&width=800",
-    url:"https://www.ozon.ru/product/4-0-elektronnaya-kniga-belyy-slonovaya-kost-3915860584/?at=46tRVzEDmTOlx82xfPA24q0H4xK1j3t9oYMROf9k6QKk&is_apparel_size_selected=true" },
-
-  { id:"fiio-echo", chip:"Аудио", icon:"player", hue:200,
-    title:"FiiO Snowsky Echo Mini, sky blue",
-    img:"https://hifigo.com/cdn/shop/files/fiio-snowsky-echo-mini-portable-music-player-hifigo-echo-mini-blue-997077.jpg?v=1760337366&width=800",
-    url:"https://www.ozon.ru/product/audiopleer-fiio-snowsky-echo-mini-f4401e-sky-blue-portativnyy-2127005062/?at=VvtzJ2mW5co1GEgPcEBAjVxf7Vj349UyLJMPlI9VollA&is_apparel_size_selected=true" },
-
-  { id:"pen-pilot", chip:"Перо", icon:"pen", hue:255,
-    title:"Pilot Kakuno Smiley Face — перьевая ручка",
-    img:"https://www.gouletpens.com/cdn/shop/products/Pilot-Kakuno-Clear-OW-2.jpg?v=1756918099&width=800",
-    url:"https://www.ozon.ru/product/perevaya-ruchka-pilot-smiley-face-seriya-kakuno-family-fka-1sr-3236768063/?at=Y7tj7DmnNtwMLqoLCBzAA6Du3LWoD8C0xRGnWHz2kAlo&is_apparel_size_selected=true" },
-
-  { id:"pen-kaweco", chip:"Перо", icon:"pen", hue:275,
-    title:"Kaweco Collection Apricot Pearl, F 0.7",
-    img:"https://yosekastationery.com/cdn/shop/files/DSC_0076_ceb4a00c-43e6-47cf-8627-5cc58a47ea04.jpg?v=1709671635&width=800",
-    url:"https://www.ozon.ru/product/perevaya-ruchka-kaweco-collection-apricot-pearl-11000259-f-0-7mm-korpus-oranzhevyy-zhemchuzhnyy-1585255377/?at=99tr0zAlMfDlJqgNU99xPjKUQwBAw2izDWwkjHwD0VBg" },
-
-  { id:"pen-twsbi", chip:"Перо", icon:"pen", hue:195,
-    title:"TWSBI ECO-T, мятно-голубой, F",
-    img:"https://www.penboutique.com/cdn/shop/products/T_M7447520-5.jpg?v=1781713630&width=800",
-    url:"https://www.ozon.ru/product/ruchka-perevaya-twsbi-eco-t-myatno-goluboy-f-727554200/?at=Y7tj7DmnNt6ZJmPXcwM5Y1EUkZZXDxCvQkvXjHNOxlBp&is_apparel_size_selected=true" },
-
-  { id:"balatro", chip:"Switch", icon:"cart", hue:230,
-    title:"Balatro (Switch) + коллекционные карточки",
-    img:"https://cdn.cloudflare.steamstatic.com/steam/apps/2379780/header.jpg",
-    url:"https://www.avito.ru/orel/igry_pristavki_i_programmy/balatro_switch_s_kol._kartochkami_8077255659" },
-
-  { id:"ff-collection", chip:"Switch", icon:"cart", hue:250,
-    title:"Final Fantasy Collection 1–6, Nintendo Switch",
-    img:"https://cdn.cloudflare.steamstatic.com/steam/apps/1173820/header.jpg",
-    url:"https://www.avito.ru/nizhniy_novgorod/igry_pristavki_i_programmy/final_fantasy_collection_1-6_nintendo_switch_8072886215" },
-
-  { id:"switch2", chip:"Мечта", icon:"console", hue:265,
-    title:"Nintendo Switch 2",
-    img:"https://www.shopitree.com/cdn/shop/files/Nintendo-Switch-2-Stand-Alone-1.jpg?v=1772765044&width=800",
-    note:"если вам совсем денег не жалко и я, очевидно, охуел ))",
-    url:"https://www.avito.ru/nizhniy_novgorod/igry_pristavki_i_programmy/nintendo_switch_2_kartridzhi_8289146119?context=H4sIAAAAAAAA_0q0MrKqLrYytlIqLkpWsi62srRSSkssyy_KLEktBvENrZQqQLSRkZWSZXBBpLGzX3pIuX-KgbF_emZ5dliYo5J1LSAAAP__464V-UYAAAA" },
-
-  { id:"cards-hp", chip:"Карты", icon:"cards", hue:215,
-    title:"theory11 · Harry Potter, красные (Гриффиндор)",
-    img:"https://madison.cards/cdn/shop/files/CARD-T11-HPr_58a9561f-c8ce-4665-92b4-d301c758fc5f.png?v=1755649547&width=800",
-    url:"https://www.ozon.ru/product/karty-theory11-harry-potter-deck-red-gryffindor-garri-potter-krasnye-griffindor-784355604/?at=pZtp29qVvFW1rwO8cAAL5w6TDN7EQGf02B1YqixD3Zm3" },
-
-  { id:"cards-wonka", chip:"Карты", icon:"cards", hue:280,
-    title:"theory11 · Wonka",
-    img:"https://cdn.shopify.com/s/files/1/0013/7332/files/WONKA-Shopify.jpg?width=800",
-    url:"https://www.ozon.ru/product/karty-theory11-wonka-villi-vonka-1682825554/?at=ywtA17K80h6DZVzzIA10LMLFmKYQ82HXJLqoOUNWwooZ" },
-
-  { id:"cards-loveme", chip:"Карты", icon:"cards", hue:305,
-    title:"theory11 · Love Me",
-    img:"https://cdn.shopify.com/s/files/1/0013/7332/files/Love-Me-05-2018-02353.jpg?width=800",
-    url:"https://www.ozon.ru/product/karty-theory11-love-me-lyubi-menya-150522570/?at=BrtzGD0wMcQBG87otr0vzwWcM6wREzs1nRolESqw7g0D" },
-];
-
-/* ── SVG-иконки (запасной вариант, в палитре) ── */
-function palette(h){return{a:`hsl(${h} 82% 62%)`,b:`hsl(${(h+40)%360} 78% 66%)`,d:`hsl(${h} 45% 34%)`,bg1:`hsl(${h} 90% 96%)`,bg2:`hsl(${(h+35)%360} 90% 95%)`};}
-function frame(h,inner){const p=palette(h);return `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g${h}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p.bg1}"/><stop offset="1" stop-color="${p.bg2}"/></linearGradient></defs><rect width="200" height="150" fill="url(#g${h})"/>${inner(p)}</svg>`;}
-const ICONS = {
-  stand:(h)=>frame(h,p=>`<rect x="66" y="34" width="68" height="52" rx="7" fill="#fff" stroke="${p.a}" stroke-width="3.5"/><line x1="78" y1="50" x2="122" y2="50" stroke="${p.b}" stroke-width="3.5" stroke-linecap="round"/><line x1="78" y1="62" x2="112" y2="62" stroke="${p.b}" stroke-width="3.5" stroke-linecap="round" opacity=".6"/><path d="M74 86 L100 118 L126 86" fill="none" stroke="${p.a}" stroke-width="4" stroke-linejoin="round"/><rect x="70" y="112" width="60" height="8" rx="4" fill="${p.d}"/>`),
-  ereader:(h)=>frame(h,p=>`<rect x="70" y="26" width="60" height="98" rx="9" fill="#fff" stroke="${p.a}" stroke-width="3.5"/><line x1="82" y1="44" x2="118" y2="44" stroke="${p.b}" stroke-width="3" stroke-linecap="round"/><line x1="82" y1="56" x2="118" y2="56" stroke="${p.b}" stroke-width="3" stroke-linecap="round" opacity=".75"/><line x1="82" y1="68" x2="110" y2="68" stroke="${p.b}" stroke-width="3" stroke-linecap="round" opacity=".55"/><circle cx="100" cy="112" r="4.5" fill="${p.a}"/>`),
-  player:(h)=>frame(h,p=>`<rect x="72" y="30" width="56" height="90" rx="12" fill="#fff" stroke="${p.a}" stroke-width="3.5"/><rect x="82" y="42" width="36" height="30" rx="5" fill="${p.bg2}" stroke="${p.b}" stroke-width="2.5"/><circle cx="100" cy="96" r="15" fill="none" stroke="${p.a}" stroke-width="3.5"/><circle cx="100" cy="96" r="4" fill="${p.d}"/>`),
-  pen:(h)=>frame(h,p=>`<g transform="rotate(45 100 75)"><rect x="72" y="66" width="70" height="18" rx="9" fill="${p.a}"/><rect x="56" y="66" width="20" height="18" rx="5" fill="${p.d}"/><path d="M142 66 L166 75 L142 84 Z" fill="#fff" stroke="${p.a}" stroke-width="2.5" stroke-linejoin="round"/><line x1="150" y1="75" x2="164" y2="75" stroke="${p.d}" stroke-width="2"/><circle cx="96" cy="75" r="3.5" fill="#fff"/></g>`),
-  cart:(h)=>frame(h,p=>`<path d="M76 34 h48 a6 6 0 0 1 6 6 v54 l-14 22 h-32 l-14 -22 v-54 a6 6 0 0 1 6 -6 z" fill="#fff" stroke="${p.a}" stroke-width="3.5" stroke-linejoin="round"/><rect x="86" y="46" width="28" height="18" rx="3" fill="${p.b}"/><line x1="84" y1="80" x2="116" y2="80" stroke="${p.d}" stroke-width="3" stroke-linecap="round"/><line x1="88" y1="92" x2="112" y2="92" stroke="${p.d}" stroke-width="3" stroke-linecap="round" opacity=".6"/>`),
-  console:(h)=>frame(h,p=>`<rect x="70" y="46" width="60" height="58" rx="8" fill="#fff" stroke="${p.d}" stroke-width="3"/><rect x="44" y="42" width="30" height="66" rx="13" fill="${p.a}"/><rect x="126" y="42" width="30" height="66" rx="13" fill="${p.b}"/><circle cx="59" cy="60" r="4" fill="#fff"/><circle cx="141" cy="90" r="4" fill="#fff"/><circle cx="55" cy="88" r="2.6" fill="#fff"/><circle cx="63" cy="88" r="2.6" fill="#fff"/>`),
-  cards:(h)=>frame(h,p=>`<g transform="rotate(-12 100 75)"><rect x="66" y="40" width="46" height="70" rx="8" fill="#fff" stroke="${p.b}" stroke-width="3"/></g><g transform="rotate(6 100 75)"><rect x="86" y="36" width="46" height="70" rx="8" fill="#fff" stroke="${p.a}" stroke-width="3.5"/><circle cx="109" cy="71" r="12" fill="none" stroke="${p.a}" stroke-width="3"/><path d="M109 65 l4 6 -4 6 -4 -6 z" fill="${p.d}"/></g>`),
-};
-
-/* ── строим карточки ── */
-const grid=document.getElementById("grid");
-const cardEls={};
-ITEMS.forEach((it,i)=>{
-  const card=document.createElement("div");
-  card.className="card";
-  card.style.animationDelay=(i*55)+"ms";
-  const photo = it.img ? `<img class="photo" src="${it.img}" alt="" loading="lazy" onerror="this.remove()">` : "";
-  card.innerHTML=`
-    <a class="thumb" href="${it.url}" target="_blank" rel="noopener" aria-label="Открыть страницу товара">
-      <div class="icon">${(ICONS[it.icon]||ICONS.cart)(it.hue)}</div>
-      ${photo}
-    </a>
-    <div class="body">
-      <span class="chip">${it.chip}</span>
-      <div class="title">${it.title}</div>
-      ${it.note?`<div class="note">${it.note}</div>`:""}
-      <div class="reserve">
-        <span class="reserve-label">Забронировать</span>
-        <button class="toggle" role="switch" aria-checked="false" aria-label="Забронировать подарок"></button>
+    <!-- Шрифты свои, а не с Google Fonts: оттуда они в России
+         открываются не всегда. Внешних запросов у сайта нет вовсе. -->
+    <link rel="stylesheet" href="./assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- ── Шапка: имя, фраза, язык. Больше сверху ничего. ── -->
+    <header class="topbar" id="top">
+      <a class="topbar__brand" href="#top">re::run</a>
+      <p class="topbar__line" data-i18n="hero.title">
+        У вас проект. У вас нет рук. Дальше&nbsp;— наша проблема.
+      </p>
+      <div class="topbar__side">
+        <div class="lang" role="group" aria-label="Язык / Language">
+          <button class="lang__btn is-on" type="button" data-lang="ru">RU</button>
+          <button class="lang__btn" type="button" data-lang="en">EN</button>
+        </div>
+        <a class="topbar__cta" href="#contact" data-i18n="nav.cta">написать</a>
       </div>
-    </div>`;
-  card.querySelector(".toggle").addEventListener("click",()=>toggle(it.id));
-  grid.appendChild(card);
-  cardEls[it.id]=card;
-});
-document.getElementById("total").textContent=ITEMS.length;
+    </header>
 
-/* ── общее состояние + отрисовка ── */
-let state={};
-function applyState(){
-  let n=0;
-  ITEMS.forEach(it=>{
-    const on=!!state[it.id]; if(on)n++;
-    const card=cardEls[it.id];
-    card.classList.toggle("on",on);
-    card.querySelector(".toggle").setAttribute("aria-checked",on);
-    card.querySelector(".reserve-label").textContent=on?"Забронировано":"Забронировать";
-  });
-  document.getElementById("count").textContent=n;
-}
+    <!-- ── Витрина: она и есть сайт ── -->
+    <div class="stage">
+      <div class="showroom" id="showroom" hidden>
+        <canvas class="showroom__canvas" id="showroom-canvas"></canvas>
+        <p class="showroom__hint" id="showroom-hint"></p>
+        <aside class="panel" id="showroom-panel" hidden></aside>
+      </div>
 
-/* backend по умолчанию — локальный (бронь хранится в этом браузере).
-   Всегда готов к работе, поэтому тумблеры реагируют сразу. */
-const KEY="wishlist_reserved_v1";
-try{ state=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){ state={}; }
-let backend={
-  toggle(id){
-    if(state[id]) delete state[id]; else state[id]={ts:Date.now()};
-    try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
-    applyState();
-  }
-};
-/* стабильная точка входа для тумблеров — всегда указывает на текущий backend */
-function toggle(id){ backend.toggle(id); }
-applyState();
+      <!-- Телефон, слабая машина, нет WebGL: те же аппараты,
+           но анфас и по одному. Рамки — отрендеренные модели
+           с дыркой на месте стекла, видео лежит под ними. -->
+      <div class="gallery" id="work-grid"></div>
+    </div>
 
-/* если Firebase настроен — на лету переключаемся на общий режим */
-(async ()=>{
-  const cfg=FIREBASE_CONFIG;
-  if(!cfg.databaseURL || /ВСТАВЬ/.test(cfg.databaseURL)) return; // остаёмся в локальном режиме
-  try{
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getDatabase, ref, onValue, set, remove } =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-    const db = getDatabase(initializeApp(cfg));
-    backend={
-      toggle(id){
-        if(state[id]) remove(ref(db,"reservations/"+id));
-        else set(ref(db,"reservations/"+id), { ts: Date.now() });
+    <!-- Страница проекта: аппарат сверху, текст снизу.
+         Открывается по тапу, закрывается кнопкой «назад». -->
+    <article class="proj" id="proj" hidden></article>
+
+    <main>
+      <!-- ── Всё, что нужно знать, одним экраном ── -->
+      <section class="brief">
+        <p class="brief__lead" data-i18n="brief.lead">
+          Внешняя команда постпродакшена для студий и агентств.
+        </p>
+        <ul class="brief__points">
+          <li data-i18n="brief.1">Постпрод и ИИ — целиком на нас</li>
+          <li data-i18n="brief.2">Подхватываем проект за сутки</li>
+          <li data-i18n="brief.3">Считаем под носитель, а не под 16:9</li>
+          <li data-i18n="brief.4">Работаем под вашим именем</li>
+        </ul>
+      </section>
+
+      <section class="contact" id="contact">
+        <h2 class="contact__title" data-i18n="contact.title">
+          Напишите, что у вас горит.
+        </h2>
+        <div class="contact__links">
+          <a class="btn btn--big" href="mailto:rerun.agency@gmail.com"
+            >rerun.agency@gmail.com</a
+          >
+          <a
+            class="btn btn--ghost"
+            href="https://t.me/rerun_ag"
+            target="_blank"
+            rel="noreferrer"
+            >telegram</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.js",
+          "three/addons/": "./vendor/"
+        }
       }
-    };
-    onValue(ref(db,"reservations"), snap=>{ state = snap.val() || {}; applyState(); });
-    document.getElementById("sync").classList.add("cloud");
-    document.getElementById("syncText").textContent="Общий режим — бронь видят все гости";
-  }catch(e){
-    console.error("Firebase недоступен, остаётся локальный режим:", e);
-  }
-})();
-</script>
-</body>
+    </script>
+
+    <script src="./script.js"></script>
+    <script type="module" src="./scene/mount.js"></script>
+  </body>
 </html>
