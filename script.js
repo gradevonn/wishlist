@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   re::run — данные, переключатель языка, кинескоп.
+   re//run — данные, переключатель языка, кинескоп.
 
    КАК ЗАПОЛНЯТЬ ПРОЕКТ
    client   — заголовок: чей это проект, что видит зритель
@@ -141,6 +141,37 @@ const projects = [
     },
     term: { ru: "месяц", en: "1 month" },
   },
+  {
+    client: { ru: "HUB", en: "HUB" },
+    customer: { ru: "HUB, салон красоты", en: "HUB, a hair salon" },
+    media: "hub2",
+    motion: true,
+    link: "https://disk.yandex.ru/d/I65IOPgSAstudw",
+    format: { ru: "Рекламный ролик", en: "Commercial" },
+    task: { ru: "Рекламный ролик", en: "A commercial" },
+    done: {
+      ru: "Вестерн про мужские стрижки: салун в пустыне, дуэль на свету, бритва из кобуры.",
+      en: "A western about men\u2019s haircuts: a saloon in the desert, a backlit standoff, a razor drawn from the holster.",
+    },
+    term: { ru: "", en: "" },
+  },
+  {
+    client: { ru: "Бар «Медные трубы»", en: "Mednye Truby bar" }, // TODO: как пишем по-английски
+    customer: { ru: "Бар «Медные трубы»", en: "Mednye Truby, the bar" },
+    media: "mednye",
+    motion: true,
+    link: "https://disk.yandex.ru/i/fOTTotn2hHvn8g",
+    format: { ru: "Рекламная кампания", en: "Campaign" },
+    task: {
+      ru: "Кампания ко Дню всех мёртвых",
+      en: "A Day of the Dead campaign",
+    },
+    done: {
+      ru: "Микс-медиа: половина снята, половина сгенерирована. Мариачи-скелеты и кладбище в свечах — рядом с настоящей барной стойкой.",
+      en: "Mixed media \u2014 half shot, half generated. Skeleton mariachis and a cemetery full of candles, next to a real bar.",
+    },
+    term: { ru: "", en: "" },
+  },
 ];
 
 /* Форматы носителей — показаны в реальных пропорциях друг к другу. */
@@ -156,15 +187,11 @@ const i18n = {
   ru: {
     "meta.description":
       "Внешняя команда постпродакшена для студий и агентств. Постпрод и ИИ целиком на нас.",
-    "page.title": "re::run — внешняя команда постпродакшена",
-    "hero.title": "У вас проект. У вас нет рук. Дальше&nbsp;— наша проблема.",
+    "page.title": "re//run — внешняя пост-продакшн команда",
+    "hero.title": "Ваша внешняя пост-продакшн команда",
     "nav.cta": "написать",
 
-    "brief.lead": "Внешняя команда постпродакшена для студий и агентств.",
-    "brief.1": "Постпрод и ИИ — целиком на нас",
-    "brief.2": "Подхватываем проект за сутки",
-    "brief.3": "Считаем под носитель, а не под 16:9",
-    "brief.4": "Работаем под вашим именем",
+    "cta.scroll": "контакты",
 
     "contact.title": "Напишите, что у вас горит.",
 
@@ -173,7 +200,6 @@ const i18n = {
     "work.task": "задача",
     "work.done": "что сделали",
     "work.term": "срок",
-    "work.tap": "нажмите на телевизор",
     "proj.back": "все работы",
     "proj.open": "открыть проект",
     "proj.raw": "посмотреть без шейдера",
@@ -182,15 +208,11 @@ const i18n = {
   en: {
     "meta.description":
       "An outside post-production team for studios and agencies. Post and AI, entirely off your plate.",
-    "page.title": "re::run — an outside post-production team",
-    "hero.title": "You\u2019ve got the job. You haven\u2019t got the hands. From here it\u2019s our problem.",
+    "page.title": "re//run — your outside post-production team",
+    "hero.title": "Your outside post-production team",
     "nav.cta": "get in touch",
 
-    "brief.lead": "An outside post-production team for studios and agencies.",
-    "brief.1": "Post and AI, entirely off your plate",
-    "brief.2": "We pick up a project within a day",
-    "brief.3": "We build for the surface, not for 16:9",
-    "brief.4": "We work under your name",
+    "cta.scroll": "contacts",
 
     "contact.title": "Tell us what\u2019s on fire.",
 
@@ -199,7 +221,6 @@ const i18n = {
     "work.task": "the brief",
     "work.done": "what we did",
     "work.term": "turnaround",
-    "work.tap": "tap a set",
     "proj.back": "all work",
     "proj.open": "open project",
     "proj.raw": "watch without the shader",
@@ -278,20 +299,24 @@ function tvMarkup(p, i, lang, eager) {
 function renderWork(lang) {
   const t = i18n[lang];
 
-  grid.innerHTML =
-    `<p class="gallery__hint">${t["work.tap"]}</p>` +
-    projects
-      .map(
-        (p, i) => `
+  /* Номер — не украшение: на стене из аппаратов канал и есть
+     способ назвать один из них, и та же нумерация стоит на
+     странице проекта. */
+  grid.innerHTML = projects
+    .map(
+      (p, i) => `
       <button class="tvcard reveal" type="button" data-index="${i}">
         ${tvMarkup(p, i, lang, i < 2)}
         <span class="tvcard__meta">
+          <span class="tvcard__line">
+            <span class="tvcard__ch">${String(i + 1).padStart(2, "0")}</span>
+            ${p.format[lang] ? `<span class="tvcard__format">${p.format[lang]}</span>` : ""}
+          </span>
           <span class="tvcard__name">${p.client[lang]}</span>
-          ${p.format[lang] ? `<span class="tvcard__format">${p.format[lang]}</span>` : ""}
         </span>
       </button>`
-      )
-      .join("");
+    )
+    .join("");
 
   grid.querySelectorAll(".tvcard").forEach((card) => {
     card.addEventListener("click", () => openProject(+card.dataset.index));
@@ -519,6 +544,11 @@ function applyLang(lang) {
   document.querySelectorAll(".lang__btn").forEach((btn) => {
     btn.classList.toggle("is-on", btn.dataset.lang === lang);
     btn.setAttribute("aria-pressed", String(btn.dataset.lang === lang));
+  });
+  // ползунок под кнопками ездит по этому атрибуту, а не по классу:
+  // так положение известно css, и не нужно дублировать его в разметке
+  document.querySelectorAll(".lang").forEach((el) => {
+    el.dataset.on = lang;
   });
 
   renderWork(lang);

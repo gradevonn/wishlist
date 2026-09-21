@@ -59,14 +59,10 @@ const el = {
   stage: document.querySelector("#showroom"),
   canvas: document.querySelector("#showroom-canvas"),
   panel: document.querySelector("#showroom-panel"),
-  hint: document.querySelector("#showroom-hint"),
 };
 
 const T = {
   ru: {
-    hint: "кликните на телевизор",
-    loading: "загружаем витрину…",
-    caption: "витрина · 3D",
     close: "закрыть",
     raw: "посмотреть без шейдера",
     open: "открыть проект",
@@ -77,9 +73,6 @@ const T = {
     blank: "—",
   },
   en: {
-    hint: "click a set",
-    loading: "loading the showroom…",
-    caption: "showroom · 3D",
     close: "close",
     raw: "watch without the shader",
     open: "open project",
@@ -119,7 +112,7 @@ function renderPanel(project, index, total) {
     <button class="panel__close" type="button">${t.close} ✕</button>
     <span class="panel__index">${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}</span>
     <h3 class="panel__title">${project.client[state.lang]}</h3>
-    <span class="panel__format">${project.format[state.lang] || blank}</span>
+    <span class="panel__format">${project.format[state.lang] || t.blank}</span>
     <dl class="panel__specs">
       ${row("customer", project.customer[state.lang])}
       ${row("task", project.task[state.lang])}
@@ -154,7 +147,6 @@ function mount() {
   // По этому классу styles.css раскладывает страницу поверх
   // витрины вместо обычной ленты блоков.
   document.documentElement.classList.add("is-showroom");
-  el.hint.textContent = T[state.lang].loading;
 
   announce("mount");
 
@@ -165,7 +157,6 @@ function mount() {
   try {
     state.showroom = new Showroom(el.canvas, data.projects, {
       onReady: () => {
-        el.hint.textContent = T[state.lang].hint;
         announce("ready");
       },
       // байты моделей — по ним загрузочный экран считает прогресс
@@ -180,11 +171,9 @@ function mount() {
       },
       onFocus: (project, index) => {
         renderPanel(project, index, data.projects.length);
-        el.hint.classList.add("is-dim");
       },
       onBlur: () => {
         hidePanel();
-        el.hint.classList.remove("is-dim");
       },
     });
   } catch (err) {
@@ -213,7 +202,6 @@ function unmount() {
 window.addEventListener("rerun:lang", (e) => {
   state.lang = e.detail.lang;
   if (!state.showroom) return;
-  if (state.showroom.models) el.hint.textContent = T[state.lang].hint;
   const unit = state.showroom.focused;
   if (unit) renderPanel(unit.project, unit.index, window.RERUN.projects.length);
 });

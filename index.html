@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>re::run — внешняя команда постпродакшена</title>
+    <title>re//run — внешняя пост-продакшн команда</title>
     <meta
       name="description"
       data-i18n="meta.description"
@@ -12,10 +12,10 @@
     <meta name="theme-color" content="#14161a" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="re::run — внешняя команда постпродакшена" />
+    <meta property="og:title" content="re//run — внешняя пост-продакшн команда" />
     <meta
       property="og:description"
-      content="У вас проект. У вас нет рук. Дальше — наша проблема."
+      content="Постпрод и ИИ для студий и агентств. Работаем под вашим именем."
     />
     <meta property="og:image" content="./assets/work/vkfest.jpg" />
 
@@ -103,9 +103,9 @@
 
     <!-- ── Шапка: имя, фраза, язык. Больше сверху ничего. ── -->
     <header class="topbar" id="top">
-      <a class="topbar__brand" href="#top">re::run</a>
+      <a class="topbar__brand" href="#top">re<span class="topbar__cut">//</span>run</a>
       <p class="topbar__line" data-i18n="hero.title">
-        У вас проект. У вас нет рук. Дальше&nbsp;— наша проблема.
+        Ваша внешняя пост-продакшн команда
       </p>
       <div class="topbar__side">
         <div class="lang" role="group" aria-label="Язык / Language">
@@ -120,7 +120,6 @@
     <div class="stage">
       <div class="showroom" id="showroom" hidden>
         <canvas class="showroom__canvas" id="showroom-canvas"></canvas>
-        <p class="showroom__hint" id="showroom-hint"></p>
         <aside class="panel" id="showroom-panel" hidden></aside>
       </div>
 
@@ -135,35 +134,38 @@
     <article class="proj" id="proj" hidden></article>
 
     <main>
-      <!-- ── Всё, что нужно знать, одним экраном ── -->
-      <section class="brief">
-        <p class="brief__lead" data-i18n="brief.lead">
-          Внешняя команда постпродакшена для студий и агентств.
-        </p>
-        <ul class="brief__points">
-          <li data-i18n="brief.1">Постпрод и ИИ — целиком на нас</li>
-          <li data-i18n="brief.2">Подхватываем проект за сутки</li>
-          <li data-i18n="brief.3">Считаем под носитель, а не под 16:9</li>
-          <li data-i18n="brief.4">Работаем под вашим именем</li>
-        </ul>
-      </section>
+      <!-- Витрина занимает весь первый экран, и по ней не видно,
+           что страница продолжается. Клавиша переключения канала
+           вниз — она же и есть указатель, куда идти за контактами.
+           Живёт только под витриной: в галерее на телефоне
+           контакты и так следующие за работами. -->
+      <a class="scroller" href="#contact">
+        <span class="scroller__lamp" aria-hidden="true"></span>
+        <span class="scroller__label" data-i18n="cta.scroll">контакты</span>
+        <span class="scroller__arrow" aria-hidden="true"></span>
+      </a>
 
       <section class="contact" id="contact">
-        <h2 class="contact__title" data-i18n="contact.title">
-          Напишите, что у вас горит.
-        </h2>
-        <div class="contact__links">
-          <a class="btn btn--big" href="mailto:rerun.agency@gmail.com"
-            >rerun.agency@gmail.com</a
-          >
-          <a
-            class="btn btn--ghost"
-            href="https://t.me/rerun_ag"
-            target="_blank"
-            rel="noreferrer"
-            >telegram</a
-          >
+        <div class="contact__main">
+          <h2 class="contact__title" data-i18n="contact.title">
+            Напишите, что у вас горит.
+          </h2>
+          <div class="contact__links">
+            <a
+              class="btn btn--big btn--live"
+              href="mailto:rerun.agency@gmail.com"
+              >rerun.agency@gmail.com</a
+            >
+            <a
+              class="btn btn--big btn--ghost"
+              href="https://t.me/rerun_ag"
+              target="_blank"
+              rel="noreferrer"
+              >telegram</a
+            >
+          </div>
         </div>
+        <p class="contact__mark">re<span class="topbar__cut">//</span>run</p>
       </section>
     </main>
 

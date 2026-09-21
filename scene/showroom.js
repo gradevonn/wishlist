@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   re::run — витрина магазина электроники.
+   re//run — витрина магазина электроники.
 
    Гора кинескопов, как товар на распродаже. Жмёшь на телевизор —
    камера подлетает, сбоку выезжает текст о проекте, на экране
@@ -117,8 +117,10 @@ const SCREEN_FRAG = `
     col *= vig;
     col += vec3(0.012, 0.016, 0.014);
 
-    // выбранный телик светит ярче, остальные притухают
-    col *= (0.72 + 0.38 * uFocus) * uDim;
+    // Выбранный телик светит ярче, остальные притухают. База
+    // высокая нарочно: работа на экране должна читаться сразу,
+    // а не только после того, как на аппарат нажали.
+    col *= (0.88 + 0.26 * uFocus) * uDim;
 
     gl_FragColor = vec4(col, 1.0);
   }
@@ -384,7 +386,7 @@ export class Showroom {
        ярком пятне, а всё вокруг — уходить в тень. Поэтому общий
        подсвет держим низким, а работу делают два направленных
        конуса сверху — как лампы над витриной в магазине. */
-    this.scene.add(new THREE.HemisphereLight(0x55616f, 0x212327, 0.34));
+    this.scene.add(new THREE.HemisphereLight(0x55616f, 0x212327, 0.22));
 
     /* Главная лампа — крутая, почти сверху, узким конусом.
        Так это и устроено над прилавком: товар лежит в пятне
@@ -418,13 +420,13 @@ export class Showroom {
     /* Отдельный свет на задник, скользящий сверху. Без него
        гофра не видна вовсе: остальные лампы направлены от стены,
        и рёбра нечему подсветить по верхней кромке. */
-    const wallWash = new THREE.DirectionalLight(0xc2d4ea, 1.5);
+    const wallWash = new THREE.DirectionalLight(0xc2d4ea, 0.95);
     wallWash.position.set(0.5, 10, -3.2);
     wallWash.target.position.set(0, 4, -9);
     this.scene.add(wallWash, wallWash.target);
 
     // Отражение от пола, чтобы низ корпусов не был угольным.
-    const bounce = new THREE.DirectionalLight(0x8a8170, 0.26);
+    const bounce = new THREE.DirectionalLight(0x8a8170, 0.19);
     bounce.position.set(0, -3, 3);
     this.scene.add(bounce);
 
@@ -444,7 +446,7 @@ export class Showroom {
 
     const shell = new THREE.Mesh(
       new THREE.BoxGeometry(26, 15, 26),
-      new THREE.MeshBasicMaterial({ color: 0x23272e, side: THREE.BackSide })
+      new THREE.MeshBasicMaterial({ color: 0x191d22, side: THREE.BackSide })
     );
     env.add(shell);
 
@@ -462,8 +464,8 @@ export class Showroom {
     panel(0xfff0d6, 16, 2.6, [0, 7, 1.5], [Math.PI / 2, 0, 0]);
     panel(0xffe8c4, 16, 1.1, [0, 7, -5], [Math.PI / 2, 0, 0]);
     // холодное окно сбоку: оно и даёт длинный блик по краю рамок
-    panel(0xa8c9ea, 3.4, 8, [-10, 3.4, 3], [0, Math.PI / 2, 0]);
-    panel(0x70849a, 2.4, 6, [10, 3, 1], [0, -Math.PI / 2, 0]);
+    panel(0x8fb1d0, 3.4, 8, [-10, 3.4, 3], [0, Math.PI / 2, 0]);
+    panel(0x5e7185, 2.4, 6, [10, 3, 1], [0, -Math.PI / 2, 0]);
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     // 0.04 — потолок размытия у PMREM: выше он ругается и всё равно обрезает
@@ -484,7 +486,7 @@ export class Showroom {
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(46, 30),
       new THREE.MeshStandardMaterial({
-        color: 0x31373e,
+        color: 0x262b31,
         metalness: 0.15,
         roughness: 0.72,
         normalMap: metal.normal,
@@ -515,7 +517,7 @@ export class Showroom {
     const back = new THREE.Mesh(
       wall,
       new THREE.MeshStandardMaterial({
-        color: 0x2f353d,
+        color: 0x23282f,
         metalness: 0.68,
         roughness: 0.48,
         normalMap: metal.normal.clone(),
@@ -718,8 +720,8 @@ export class Showroom {
         y += h; // следующий садится ровно на крышку нижнего
 
         // задний план приглушаем, чтобы он не спорил с проектами
-        unit.material.uniforms.uDim.value = 0.62;
-        unit.baseDim = 0.62;
+        unit.material.uniforms.uDim.value = 0.5;
+        unit.baseDim = 0.5;
         setShadow(unit.group, true, true);
 
         this.units.push(unit);
@@ -728,46 +730,52 @@ export class Showroom {
     });
   }
 
-  /* Вывеска по центру фона, над кучей. */
+  /* Вывеска над кучей — как над стеллажами в магазине.
+
+     Большой её сделать нельзя, и дело не во вкусе: с камеры
+     силуэт горы перекрывает задник вдвое шире себя самого, и
+     широкая вывеска показывалась бы обрубками по краям. Свободна
+     ровно одна полоса — над макушкой. Там вывеска и висит.
+
+     Высоту берём от самой горы, а не числом: станет рядом
+     больше или меньше — вывеска переедет сама. */
   #buildLogo() {
     // 2048 px в webp: исходный png весит 9 МБ — больше, чем все
     // четыре модели вместе, а на плоскости это всё равно не видно.
     const tex = new THREE.TextureLoader().load("./assets/logo.webp");
     tex.colorSpace = THREE.SRGBColorSpace;
 
-    const w = 11.2;
-    const h = w * (2305 / 6465);
+    const h = 0.95;
+    const w = h / (730 / 2048);
     const sign = new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
       new THREE.MeshBasicMaterial({
         map: tex,
         // Вывеска светлая и глянцевая: в полную силу она перетягивает
         // внимание с экранов, ради которых всё и затевалось.
-        color: 0xa6aeb8,
+        color: 0x9aa3ae,
         transparent: true,
         depthWrite: false,
       })
     );
-    // Гора закрывает низ вывески — поднимаем так, чтобы буквы
-    // читались над ней, а не выглядывали по краям.
-    sign.position.set(0, 3.62, -6.4);
+    sign.position.set(0.4, (this.stackTop || 2.7) + 1.72, -7.2);
     sign.renderOrder = 1;
     this.scene.add(sign);
     this.logo = sign;
 
-    const wash = new THREE.PointLight(0xbcd2e8, 12, 11, 1.5);
-    wash.position.set(0, 3.6, -3.6);
+    const wash = new THREE.PointLight(0xbcd2e8, 5, 9, 1.5);
+    wash.position.set(0.4, sign.position.y - 0.2, -4.6);
     this.scene.add(wash);
   }
 
   /* Проекты сложены горой, как товар на распродаже:
      широкий низ, сужающиеся ряды, ничего не надо листать. */
   #buildStack(rng) {
-    const rows = [4, 3, 1]; // снизу вверх; в сумме восемь проектов
-    // Сдвиг ряда вбок. Верхний аппарат обязан уйти с середины:
-    // ровно за ним стоит вывеска, и по центру он её закрывает.
-    // Заодно куча перестаёт быть симметричной пирамидой.
-    const ROW_SHIFT = [0, 0.14, -0.86];
+    const rows = [4, 3, 3]; // снизу вверх; в сумме десять проектов
+    // Сдвиг ряда вбок. Верхний ряд обязан уйти с середины: ровно
+    // за ним стоит вывеска, и по центру он её закрывает. Заодно
+    // куча перестаёт быть симметричной пирамидой.
+    const ROW_SHIFT = [0, 0.14, -0.45];
     const TARGET_H = 0.92; // ровняем по высоте, иначе ряды не стыкуются
 
     let index = 0;
