@@ -21,6 +21,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
    по этому списку, иначе случай ставит в первый ряд четыре
    одинаковых корпуса. */
 const MODEL_FILES = ["goldstar", "panasonic", "tecno", "combo"];
+
+// пропорции assets/logo.webp — 2048 × 730, из них буквы занимают
+// по высоте среднюю треть с хвостиком: остальное — прозрачные поля
+const LOGO_RATIO = 730 / 2048;
+const LOGO_INK = 0.66;
 const SCREEN_NAME = "__rerun_screen";
 
 const IDLE_Z = 4.6; // камера, когда ничего не выбрано
@@ -655,7 +660,7 @@ export class Showroom {
      брались случайно, и половина массовки стояла друг в друге. */
   #buildBackHeap(rng) {
     const COLUMNS = 18;
-    const GAP = 0.05;
+    const GAP = 0.12;
 
     // гора с проектами — первое препятствие в списке
     const stack = new THREE.Box3();
@@ -711,12 +716,12 @@ export class Showroom {
         unit.group.scale.setScalar(col.k);
         const h = unit.group.userData.size.h * col.k;
 
-        unit.group.position.set(
-          col.x + (rng() - 0.5) * 0.04,
-          y,
-          col.z + (rng() - 0.5) * 0.04
-        );
-        unit.group.rotation.set(0, col.yaw + (rng() - 0.5) * 0.07, 0);
+        /* Ни дрожи по месту, ни довороту сверх столбика: место
+           под столбик отбиралось по ЕГО следу, и любая добавка
+           выносит верхний аппарат за проверенный след — прямо
+           в соседа. Столбик стоит столбиком. */
+        unit.group.position.set(col.x, y, col.z);
+        unit.group.rotation.set(0, col.yaw, 0);
         y += h; // следующий садится ровно на крышку нижнего
 
         // задний план приглушаем, чтобы он не спорил с проектами
@@ -730,56 +735,115 @@ export class Showroom {
     });
   }
 
-  /* Вывеска над кучей — как над стеллажами в магазине.
+  /* Вывеска — во весь задник.
 
-     Большой её сделать нельзя, и дело не во вкусе: с камеры
-     силуэт горы перекрывает задник вдвое шире себя самого, и
-     широкая вывеска показывалась бы обрубками по краям. Свободна
-     ровно одна полоса — над макушкой. Там вывеска и висит.
+     Размер не зашит числом, а считается от кадра: ширина вывески
+     равна ширине того, что камера видит на её глубине. Окно у
+     каждого своё, и на широком экране число вроде «двадцать
+     метров» оставляло бы поля, а на узком резало бы буквы.
+     Пересчитывается там же, где кадрируется куча, — значит, и
+     при смене размера окна тоже.
 
-     Высоту берём от самой горы, а не числом: станет рядом
-     больше или меньше — вывеска переедет сама. */
+     Прозрачность низкая нарочно. Вывеска во весь экран в полную
+     силу перетягивает внимание с работ, ради которых сюда и
+     заходят; вполсилы она читается как краска по стене. */
   #buildLogo() {
     // 2048 px в webp: исходный png весит 9 МБ — больше, чем все
     // четыре модели вместе, а на плоскости это всё равно не видно.
     const tex = new THREE.TextureLoader().load("./assets/logo.webp");
     tex.colorSpace = THREE.SRGBColorSpace;
 
-    const h = 0.95;
-    const w = h / (730 / 2048);
+    // полотно единичное: настоящий размер задаёт scale в #placeLogo
     const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(w, h),
+      new THREE.PlaneGeometry(1, 1),
       new THREE.MeshBasicMaterial({
         map: tex,
-        // Вывеска светлая и глянцевая: в полную силу она перетягивает
-        // внимание с экранов, ради которых всё и затевалось.
-        color: 0x9aa3ae,
+        color: 0xb4bcc6,
         transparent: true,
+        opacity: 0.42,
         depthWrite: false,
       })
     );
-    sign.position.set(0.4, (this.stackTop || 2.7) + 1.72, -7.2);
+    // почти вплотную к гофре задника: это краска по стене,
+    // а не щит, висящий в воздухе
+    sign.position.set(0, 4, -8.75);
     sign.renderOrder = 1;
     this.scene.add(sign);
     this.logo = sign;
-
-    const wash = new THREE.PointLight(0xbcd2e8, 5, 9, 1.5);
-    wash.position.set(0.4, sign.position.y - 0.2, -4.6);
-    this.scene.add(wash);
   }
 
-  /* Проекты сложены горой, как товар на распродаже:
-     широкий низ, сужающиеся ряды, ничего не надо листать. */
+  /* Вывеска ровно такая, какая влезает.
+
+     Снизу её режет куча: с камеры силуэт горы ложится на задник
+     вдвое шире себя, и всё, что ниже луча через макушку, просто
+     не видно. Сверху режет край кадра. Между этими двумя
+     линиями и живут буквы — во всю оставшуюся ширину.
+
+     Считать это обязательно, а не подбирать числом: полоса
+     зависит и от пропорций окна, и от того, сколько рядов
+     в куче. Пересчитывается там же, где кадрируется гора. */
+  #placeLogo(vFov, hFov, dist) {
+    const sign = this.logo;
+    if (!sign || !this.crest) return;
+
+    const away = this.homePos.z - sign.position.z;
+
+    // верхний луч кадра с поправкой на наклон камеры
+    const pitch = Math.atan2(this.homeLook.y - this.homePos.y, dist);
+    const yTop = this.homePos.y + Math.tan(pitch + vFov / 2) * away;
+
+    // луч через гребень кучи: ниже него задника не видно
+    const yOcc =
+      this.homePos.y +
+      ((this.crest.y - this.homePos.y) / (this.homePos.z - this.crest.z)) *
+        away;
+
+    const band = Math.max(0.8, yTop - yOcc - 0.35); // воздух под шапкой
+    let h = band / LOGO_INK;
+    let w = h / LOGO_RATIO;
+
+    // шире кадра не имеет смысла: края всё равно срежет
+    const maxW = Math.tan(hFov / 2) * away * 2 * 1.02;
+    if (w > maxW) {
+      w = maxW;
+      h = w * LOGO_RATIO;
+    }
+
+    sign.scale.set(w, h, 1);
+    sign.position.x = this.homeLook.x;
+    sign.position.y = yOcc + (h * LOGO_INK) / 2;
+  }
+
+  /* Проекты сложены горой, как товар на распродаже: широкий низ,
+     сужающиеся ряды, ничего не надо листать.
+
+     Гора обязана держаться на себе самой, и это не метафора,
+     а три правила, которые тут выполняются буквально.
+
+     1. Все аппараты ряда приведены РОВНО к одной высоте. Раньше
+        высота гуляла на ±5 %, следующий ряд ложился на самый
+        высокий из них, а над остальными повисала щель.
+     2. Ряд не шире того, на чём стоит. Если сдвиг выносит его
+        за край нижнего ряда, сдвиг урезается: крайний аппарат
+        не должен висеть над воздухом.
+     3. След на полке считаем ПОВЁРНУТЫЙ. Корпус, стоящий чуть
+        наискось, занимает больше своей ширины, и без этого
+        соседи входят друг в друга углами.
+
+     Наклон корпуса убран совсем. Он топил один угол в соседа,
+     а другой поднимал над полкой — ровно то, из-за чего гора
+     и выглядела поплывшей. */
   #buildStack(rng) {
     const rows = [4, 3, 3]; // снизу вверх; в сумме десять проектов
-    // Сдвиг ряда вбок. Верхний ряд обязан уйти с середины: ровно
-    // за ним стоит вывеска, и по центру он её закрывает. Заодно
-    // куча перестаёт быть симметричной пирамидой.
-    const ROW_SHIFT = [0, 0.14, -0.45];
-    const TARGET_H = 0.92; // ровняем по высоте, иначе ряды не стыкуются
+    const ROW_SHIFT = [0, 0.12, 0.04];
+    const TARGET_H = 0.92;
+    const GAP = 0.05; // зазор между соседями в ряду
+    const YAW = 0.05; // разворот вокруг вертикали, радианы
+    const Z_STEP = 0.16; // насколько ряд отступает вглубь
 
     let index = 0;
     let baseY = 0;
+    let below = null; // след ряда снизу: [x0, x1, z0, z1]
 
     rows.forEach((n, row) => {
       const built = [];
@@ -790,45 +854,47 @@ export class Showroom {
         index++;
 
         const size = unit.group.userData.size;
-        const k = (TARGET_H * (0.95 + rng() * 0.1)) / size.h;
+        const k = TARGET_H / size.h; // ровно, без разнобоя
         unit.group.scale.multiplyScalar(k);
-        unit.group.userData.size = {
-          w: size.w * k,
-          h: size.h * k,
-          depth: size.depth * k,
-        };
+
+        const w = size.w * k;
+        const depth = size.depth * k;
+        unit.group.userData.size = { w, h: TARGET_H, depth };
+
+        unit.yaw = (rng() - 0.5) * 2 * YAW;
+        const c = Math.abs(Math.cos(unit.yaw));
+        const sn = Math.abs(Math.sin(unit.yaw));
+        unit.footW = w * c + depth * sn;
+        unit.footD = w * sn + depth * c;
         built.push(unit);
       }
 
-      // ряд складываем вплотную: корпуса касаются боками,
-      // тогда это читается как куча, а не как расставленные штуки
-      const widths = built.map((u) => u.group.userData.size.w);
-      const gap = 0.035;
-      const total = widths.reduce((a, b) => a + b, 0) + gap * (built.length - 1);
+      const total =
+        built.reduce((a, u) => a + u.footW, 0) + GAP * (built.length - 1);
+      const deep = Math.max(...built.map((u) => u.footD));
 
-      let x = -total / 2 + (ROW_SHIFT[row] || 0);
-      const rowH = Math.max(...built.map((u) => u.group.userData.size.h));
+      /* Отрезок длиной len загоняем внутрь отрезка [lo, hi],
+         стараясь не уезжать от желаемого начала. Не влезает —
+         ставим по центру: это меньшее из зол. */
+      const fit = (lo, hi, len, want) =>
+        hi - lo >= len
+          ? Math.min(Math.max(want, lo), hi - len)
+          : (lo + hi - len) / 2;
 
-      built.forEach((unit, i) => {
-        const size = unit.group.userData.size;
-        x += size.w / 2;
+      let x0 = -total / 2 + (ROW_SHIFT[row] || 0);
+      let zc = -row * Z_STEP;
 
-        /* Ноль у этих моделей стоит на дне корпуса, а не в его
-           середине. Раньше сюда добавлялась половина высоты — и
-           вся гора висела в полуметре над полом. Без теней это
-           было незаметно, с тенями бросалось бы в глаза. */
-        unit.group.position.set(
-          x,
-          baseY,
-          -row * 0.3 + (rng() - 0.5) * 0.08
-        );
-        unit.group.rotation.set(
-          (rng() - 0.5) * 0.03,
-          (rng() - 0.5) * 0.22,
-          (rng() - 0.5) * 0.02
-        );
+      if (below) {
+        x0 = fit(below[0], below[1], total, x0);
+        zc = fit(below[2], below[3], deep, zc - deep / 2) + deep / 2;
+      }
 
-        x += size.w / 2 + gap;
+      let x = x0;
+      built.forEach((unit) => {
+        x += unit.footW / 2;
+        unit.group.position.set(x, baseY, zc);
+        unit.group.rotation.set(0, unit.yaw, 0);
+        x += unit.footW / 2 + GAP;
 
         setShadow(unit.group, true, true);
         this.units.push(unit);
@@ -836,7 +902,14 @@ export class Showroom {
         this.scene.add(unit.group);
       });
 
-      baseY += rowH * 0.99;
+      below = [x0, x0 + total, zc - deep / 2, zc + deep / 2];
+      baseY += TARGET_H; // крышка в крышку, без нахлёста
+
+      /* Гребень: верхняя передняя кромка САМОГО ВЕРХНЕГО ряда.
+         Именно она, а не передний край всей коробки, решает,
+         докуда куча закрывает задник: нижний ряд стоит ближе
+         к зрителю, но и ниже. */
+      this.crest = { y: baseY, z: zc + deep / 2 };
     });
 
     // на витринных аппаратах сразу стоит кадр работы
@@ -863,7 +936,10 @@ export class Showroom {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
 
-    const MARGIN = 1.16; // воздух по краям кучи
+    /* Воздуха стало больше: над кучей живёт вывеска во весь
+       задник, и ей нужна полоса. Аппараты от этого мельче
+       процентов на семь — размен сознательный. */
+    const MARGIN = 1.24;
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * this.camera.aspect);
     const dist =
@@ -872,9 +948,13 @@ export class Showroom {
         (size.x * MARGIN) / 2 / Math.tan(hFov / 2)
       ) + size.z / 2;
 
-    // смотрим чуть сверху: так это куча товара, а не стенд
-    this.homeLook.set(center.x, center.y, center.z);
-    this.homePos.set(center.x, center.y + size.y * 0.12, center.z + dist);
+    /* Смотрим чуть сверху — так это куча товара, а не стенд, —
+       и чуть выше самой кучи: камера, задранная над макушкой,
+       открывает полосу задника, где стоит вывеска. */
+    this.homeLook.set(center.x, center.y + size.y * 0.1, center.z);
+    this.homePos.set(center.x, center.y + size.y * 0.16, center.z + dist);
+
+    this.#placeLogo(vFov, hFov, dist);
 
     if (snap) {
       this.camPos.copy(this.homePos);
