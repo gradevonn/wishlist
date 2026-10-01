@@ -84,6 +84,12 @@ const T = {
   },
 };
 
+/* Тот же помощник, что в script.js: не написанное поле и написанное
+   пустым должны вести себя одинаково. Здесь это важнее вдвое —
+   исключение отсюда уходило наверх через onFocus в обработчик клика
+   по витрине, и аппарат переставал открываться совсем. */
+const say = (field) => (field && field[state.lang]) || "";
+
 function renderPanel(project, index, total) {
   const t = T[state.lang];
   // пустое поле не показываем — как и на странице проекта
@@ -111,13 +117,13 @@ function renderPanel(project, index, total) {
   el.panel.innerHTML = `
     <button class="panel__close" type="button">${t.close} ✕</button>
     <span class="panel__index">${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}</span>
-    <h3 class="panel__title">${project.client[state.lang]}</h3>
-    <span class="panel__format">${project.format[state.lang] || t.blank}</span>
+    <h3 class="panel__title">${say(project.client)}</h3>
+    <span class="panel__format">${say(project.format) || t.blank}</span>
     <dl class="panel__specs">
-      ${row("customer", project.customer[state.lang])}
-      ${row("task", project.task[state.lang])}
-      ${row("done", project.done[state.lang])}
-      ${row("term", project.term[state.lang])}
+      ${row("customer", say(project.customer))}
+      ${row("task", say(project.task))}
+      ${row("done", say(project.done))}
+      ${row("term", say(project.term))}
     </dl>
     <div class="panel__links">${links.join("")}</div>`;
 

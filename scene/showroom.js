@@ -1142,7 +1142,7 @@ export class Showroom {
     unit.material.uniforms.uNoise.value = unit.idleNoise;
   }
 
-  /* Видео крутится только у ближайших аппаратов: восемь одновременных
+  /* Видео крутится только у ближайших аппаратов: десять одновременных
      потоков десктоп потянет, но греть видеокарту ради дальнего угла незачем. */
   #updatePlayback() {
     const cam = this.camera.position;

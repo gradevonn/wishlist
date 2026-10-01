@@ -81,17 +81,21 @@ const projects = [
     term: { ru: "неделя", en: "1 week" },
   },
   {
-    client: { ru: "Called a Garment × OMANKO", en: "Called a Garment × OMANKO" },
-    customer: { ru: "Called a Garment, бренд", en: "Called a Garment, the brand" },
-    media: "omanko-ar",
-    link: "https://vimeo.com/1140697728", // TODO: проверить, что ссылка публичная
-    format: { ru: "AR-инсталляция", en: "AR installation" },
-    task: { ru: "AR-инсталляция для бренда", en: "An AR installation for the brand" },
-    done: {
-      ru: "Генерация в реальном времени: картинка реагировала на происходящее вокруг.",
-      en: "Generated in real time \u2014 the image reacted to what was happening around it.",
+    client: { ru: "Северсталь", en: "Severstal" },
+    customer: { ru: "Северсталь", en: "Severstal" },
+    media: "severstal",
+    motion: true,
+    link: "https://disk.yandex.ru/i/c6dB5ibOHHRQzg",
+    format: { ru: "Рекламный ролик", en: "Commercial" },
+    task: {
+      ru: "Рекламный ролик для HR-бренда",
+      en: "A commercial for the employer brand",
     },
-    term: { ru: "2 недели", en: "2 weeks" },
+    done: {
+      ru: "Пришёл брендбук — ушёл готовый ролик: креатив, раскадровки, моушн, оживлённые на ИИ иконки и саунд-дизайн.",
+      en: "A brand book came in, a finished film went out: the idea, the storyboards, the motion, icons animated with AI and the sound design.",
+    },
+    term: { ru: "три дня", en: "3 days" },
   },
   {
     client: { ru: "Катарская полицейская академия", en: "Qatar Police Academy" },
@@ -249,6 +253,15 @@ const TV_FRAMES = {
 const TV_ORDER = ["goldstar", "panasonic", "tecno", "combo"];
 const tvFor = (i) => TV_ORDER[i % TV_ORDER.length];
 
+/* Шапка файла обещает: «пустое поле просто не показывается, сайт от
+   этого не ломается». Без этого помощника обещание было ложью —
+   пустая СТРОКА и правда безвредна, а вот отсутствующий КЛЮЧ ронял
+   `p.format[lang]` с TypeError прямо внутри projects.map(), и тогда
+   grid.innerHTML не присваивался вовсе: вместо одной недостающей
+   строчки зритель получал пустую галерею. Теперь не написанное поле
+   и написанное пустым — одно и то же. */
+const say = (field, lang) => (field && field[lang]) || "";
+
 const grid = document.querySelector("#work-grid");
 const projView = document.querySelector("#proj");
 const ratioList = document.querySelector("#ratios"); // блока может не быть
@@ -260,7 +273,7 @@ let currentLang = "ru";
 function tvMarkup(p, i, lang, eager) {
   const key = tvFor(i);
   const f = TV_FRAMES[key];
-  const name = p.client[lang];
+  const name = say(p.client, lang);
 
   /* Стоп-кадр лежит ОТДЕЛЬНОЙ картинкой под видео, а само видео
      проявляется только когда реально пошло. Атрибута poster для
@@ -310,9 +323,9 @@ function renderWork(lang) {
         <span class="tvcard__meta">
           <span class="tvcard__line">
             <span class="tvcard__ch">${String(i + 1).padStart(2, "0")}</span>
-            ${p.format[lang] ? `<span class="tvcard__format">${p.format[lang]}</span>` : ""}
+            ${say(p.format, lang) ? `<span class="tvcard__format">${say(p.format, lang)}</span>` : ""}
           </span>
-          <span class="tvcard__name">${p.client[lang]}</span>
+          <span class="tvcard__name">${say(p.client, lang)}</span>
         </span>
       </button>`
     )
@@ -360,13 +373,13 @@ function renderProject(i, lang) {
     </div>
     <div class="proj__set">${tvMarkup(p, i, lang, true)}</div>
     <div class="proj__body">
-      <h2 class="proj__title">${p.client[lang]}</h2>
-      ${p.format[lang] ? `<span class="proj__format">${p.format[lang]}</span>` : ""}
+      <h2 class="proj__title">${say(p.client, lang)}</h2>
+      ${say(p.format, lang) ? `<span class="proj__format">${say(p.format, lang)}</span>` : ""}
       <dl class="proj__specs">
-        ${row("customer", p.customer[lang])}
-        ${row("task", p.task[lang])}
-        ${row("done", p.done[lang])}
-        ${row("term", p.term[lang])}
+        ${row("customer", say(p.customer, lang))}
+        ${row("task", say(p.task, lang))}
+        ${row("done", say(p.done, lang))}
+        ${row("term", say(p.term, lang))}
       </dl>
       <div class="proj__links">${links.join("")}</div>
     </div>`;
@@ -497,7 +510,7 @@ function bindScreens() {
   }
 
   /* На телефоне играет только то, что сейчас перед глазами:
-     восемь одновременных потоков — это и батарея, и трафик. */
+     десять одновременных потоков — это и батарея, и трафик. */
   screenObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((e) => {
@@ -557,8 +570,13 @@ function applyLang(lang) {
   // открытую страницу проекта перерисовываем на новом языке
   if (openIndex >= 0) renderProject(openIndex, lang);
 
-  // витрина живёт в отдельном модуле и берёт данные отсюда
-  window.RERUN = { projects, lang };
+  /* Витрина живёт в отдельном модуле и берёт данные отсюда.
+     Не присваиваем новый объект, а дописываем поля в старый:
+     scene/mount.js кладёт сюда ручку .showroom, и переприсваивание
+     её стирало. После смены языка ссылка вида #/p/<проект> на
+     десктопе переставала подлетать к нужному аппарату — молча,
+     потому что showProject только проверяет наличие ручки. */
+  window.RERUN = Object.assign(window.RERUN || {}, { projects, lang });
   window.dispatchEvent(new CustomEvent("rerun:lang", { detail: { lang } }));
 
   try {
