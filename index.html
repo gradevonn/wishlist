@@ -1,184 +1,106 @@
 <!DOCTYPE html>
 <html lang="ru">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
     <title>re//run — внешняя пост-продакшн команда</title>
-    <meta
-      name="description"
-      data-i18n="meta.description"
-      content="Внешняя команда постпродакшена для студий и агентств. Постпрод и ИИ целиком на нас."
-    />
-    <meta name="theme-color" content="#14161a" />
-
+    <meta name="description" content="Внешняя команда постпродакшена для студий и агентств. Постпрод и ИИ целиком на нас." />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="re//run — внешняя пост-продакшн команда" />
-    <meta
-      property="og:description"
-      content="Постпрод и ИИ для студий и агентств. Работаем под вашим именем."
-    />
+    <meta property="og:description" content="Постпрод и ИИ для студий и агентств. Работаем под вашим именем." />
     <meta property="og:image" content="./assets/work/vkfest.jpg" />
-
-    <!-- Шрифты свои, а не с Google Fonts: оттуда они в России
-         открываются не всегда. Внешних запросов у сайта нет вовсе. -->
-    <link rel="stylesheet" href="./assets/fonts/fonts.css" />
-    <link rel="stylesheet" href="./styles.css" />
-
-    <!-- Картинки загрузочного экрана нужны раньше всего остального -->
-    <link rel="preload" as="image" href="./assets/tv/panasonic.webp" />
-    <link rel="preload" as="image" href="./assets/logo-boot.webp" />
-
-    <!-- Режим загрузочного экрана выбирается ДО стилей.
-         Без скрипта класса нет, занавеса нет, сайт открывается
-         как обычно: сломаться тут не на чем. -->
     <script>
-      (function () {
-        var d = document.documentElement;
-        var mode = "cold";
-        try {
-          if (sessionStorage.getItem("rerun-seen")) mode = "warm";
-          sessionStorage.setItem("rerun-seen", "1");
-        } catch (e) {
-          /* приватный режим, встроенный браузер телеграма — не беда */
-        }
-        /* ?boot=full — полный монтаж на десять секунд, ?boot=cold —
-           как при первом заходе. Удобно показывать и удобно править,
-           не вычищая хранилище. */
-        try {
-          var ask = /[?&]boot=(cold|warm|full|still|off)/.exec(location.search);
-          if (ask) mode = ask[1];
-        } catch (e) {}
-        if (mode === "off") return;
-        try {
-          if (
-            mode === "cold" &&
-            window.matchMedia &&
-            matchMedia("(prefers-reduced-motion: reduce)").matches
-          )
-            mode = "still";
-        } catch (e) {}
-        d.setAttribute("data-boot", mode);
-        d.classList.add("is-booting");
-      })();
+      if (window.innerWidth < 1024) location.replace('./mobile.html' + location.search + location.hash);
+      document.documentElement.classList.add('has-js');
     </script>
+    <link rel="preload" as="font" href="./desktop/assets/Iosevka-Regular.woff2" type="font/woff2" crossorigin />
+    <link rel="preload" as="image" href="./desktop/assets/logo-1.webp" />
+    <link rel="stylesheet" href="./desktop/styles.css" />
+    <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
   </head>
-  <body>
-    <!-- ── Загрузочный экран ─────────────────────────────────────
-         Включается телевизор. Слой перекрывает страницу, пока она
-         собирается: раньше зритель успевал увидеть три состояния
-         подряд — сначала мобильную галерею, потом пустую тёмную
-         комнату, потом гору. Теперь всё это происходит ПОД ним.
-         Числа в style — те же, что у панасоника в TV_FRAMES
-         (script.js): дырка под стекло совпадает с рамкой, потому
-         что это буквально одни и те же доли. ── -->
-    <div class="boot" id="boot" aria-hidden="true">
-      <span class="boot__pool"></span>
-      <div
-        class="boot__set"
-        style="--tw: 800; --th: 775; --sx: 0.09563; --sy: 0.09097; --sw: 0.80875; --sh: 0.64323"
-      >
-        <span class="boot__screen">
-          <span class="boot__raster">
-            <canvas class="boot__snow"></canvas>
-            <span class="boot__bars"></span>
-            <img class="boot__logo" src="./assets/logo-boot.webp" alt="" />
-          </span>
-          <span class="boot__roll"></span>
-          <span class="boot__scan"></span>
-          <span class="boot__vignette"></span>
-          <span class="boot__flash"></span>
-          <p class="boot__osd"></p>
-        </span>
-        <img
-          class="boot__frame"
-          src="./assets/tv/panasonic.webp"
-          alt=""
-          width="800"
-          height="775"
-        />
-        <span class="boot__led"></span>
-      </div>
-    </div>
-    <script src="./boot.js"></script>
-
-    <!-- ── Шапка: имя, фраза, язык. Больше сверху ничего. ── -->
-    <header class="topbar" id="top">
-      <a class="topbar__brand" href="#top">re<span class="topbar__cut">//</span>run</a>
-      <p class="topbar__line" data-i18n="hero.title">
-        Ваша внешняя пост-продакшн команда
-      </p>
-      <div class="topbar__side">
-        <div class="lang" role="group" aria-label="Язык / Language">
-          <button class="lang__btn is-on" type="button" data-lang="ru">RU</button>
-          <button class="lang__btn" type="button" data-lang="en">EN</button>
-        </div>
-        <a class="topbar__cta" href="#contact" data-i18n="nav.cta">написать</a>
+  <body data-view="home">
+    <div class="scene-space" aria-hidden="true"></div>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+    <header class="header" aria-label="Основная навигация">
+      <a class="header__brand" href="#/" aria-label="re//run — главная">
+        <img src="./desktop/assets/logo-1.webp" alt="re//run" width="1132" height="544" />
+      </a>
+      <nav class="header__nav">
+        <a class="nav__about" href="#/about" data-copy="nav.about">о нас</a>
+        <a class="nav__archive" href="#/archive" data-copy="nav.archive">архив</a>
+        <a class="nav__contact" href="#/contact" data-copy="nav.contact">связаться</a>
+      </nav>
+      <div class="language" role="group" aria-label="Язык / Language">
+        <button type="button" data-language="ru" aria-pressed="true">ru</button><span aria-hidden="true">//</span><button type="button" data-language="en" aria-pressed="false">en</button>
       </div>
     </header>
-
-    <!-- ── Витрина: она и есть сайт ── -->
-    <div class="stage">
-      <div class="showroom" id="showroom" hidden>
-        <canvas class="showroom__canvas" id="showroom-canvas"></canvas>
-        <aside class="panel" id="showroom-panel" hidden></aside>
-      </div>
-
-      <!-- Телефон, слабая машина, нет WebGL: те же аппараты,
-           но анфас и по одному. Рамки — отрендеренные модели
-           с дыркой на месте стекла, видео лежит под ними. -->
-      <div class="gallery" id="work-grid"></div>
-    </div>
-
-    <!-- Страница проекта: аппарат сверху, текст снизу.
-         Открывается по тапу, закрывается кнопкой «назад». -->
-    <article class="proj" id="proj" hidden></article>
-
-    <main>
-      <!-- Витрина занимает весь первый экран, и по ней не видно,
-           что страница продолжается. Клавиша переключения канала
-           вниз — она же и есть указатель, куда идти за контактами.
-           Живёт только под витриной: в галерее на телефоне
-           контакты и так следующие за работами. -->
-      <a class="scroller" href="#contact">
-        <span class="scroller__lamp" aria-hidden="true"></span>
-        <span class="scroller__label" data-i18n="cta.scroll">контакты</span>
-        <span class="scroller__arrow" aria-hidden="true"></span>
-      </a>
-
-      <section class="contact" id="contact">
-        <div class="contact__main">
-          <h2 class="contact__title" data-i18n="contact.title">
-            Напишите, что у вас горит.
-          </h2>
-          <div class="contact__links">
-            <a
-              class="btn btn--big btn--live"
-              href="mailto:rerun.agency@gmail.com"
-              >rerun.agency@gmail.com</a
-            >
-            <a
-              class="btn btn--big btn--ghost"
-              href="https://t.me/rerun_ag"
-              target="_blank"
-              rel="noreferrer"
-              >telegram</a
-            >
+    <main id="main" tabindex="-1">
+      <section class="home" id="home" aria-label="Работы re//run">
+        <canvas id="scene" class="scene" aria-label="Трёхмерная витрина работ"></canvas>
+        <div class="scene-fallback" id="scene-fallback" hidden></div>
+        <p class="home__caption" data-copy="home.caption">команда внешнего<br />пост-продакшена</p>
+        <p class="home__hover" id="home-hover" aria-hidden="true"></p>
+        <a class="home__next" href="#/contact" aria-label="Контакты" data-label="nav.contact">
+          <svg viewBox="0 0 32 20" width="32" height="20" aria-hidden="true"><path d="m5 5 11 10L27 5" /></svg>
+        </a>
+        <div class="work-keyboard" id="work-keyboard" aria-label="Выбрать работу"></div>
+      </section>
+      <section class="archive view" id="archive" aria-labelledby="archive-title" hidden>
+        <h1 id="archive-title" class="view__title" tabindex="-1" data-copy="archive.title">все кейсы</h1>
+        <div class="archive__grid" id="archive-grid"></div>
+      </section>
+      <section class="about view" id="about" aria-labelledby="about-title" hidden>
+        <h1 id="about-title" class="view__title" tabindex="-1" data-copy="nav.about">о нас</h1>
+        <div class="about__body">
+          <p class="about__lead" data-copy="about.lead">Ваша внешняя<br />пост-продакшн команда.</p>
+          <div class="about__text">
+            <p data-copy="about.description">Внешняя команда постпродакшена для студий и агентств. Постпрод и ИИ целиком на нас.</p>
+            <p data-copy="about.signature">Работаем под вашим именем.</p>
+            <a class="text-link" href="#/contact" data-copy="nav.contact">связаться</a>
           </div>
         </div>
-        <p class="contact__mark">re<span class="topbar__cut">//</span>run</p>
+      </section>
+      <section class="project" id="project" aria-labelledby="project-title" hidden>
+        <button class="close project__close" id="project-close" type="button" aria-label="Закрыть проект" data-label="close">
+          <img src="./desktop/assets/close-project.svg" alt="" width="18.7071" height="19.4142" />
+        </button>
+        <div class="project__body" id="project-body"></div>
+        <div class="project__navigation">
+          <button type="button" id="project-prev" aria-label="Предыдущая работа" data-label="previous"><svg viewBox="0 0 36 24" width="36" height="24" aria-hidden="true"><path d="M31 12H5m10-8L5 12l10 8" /></svg></button>
+          <span id="project-counter"></span>
+          <button type="button" id="project-next" aria-label="Следующая работа" data-label="next"><svg viewBox="0 0 36 24" width="36" height="24" aria-hidden="true"><path d="M5 12h26M21 4l10 8-10 8" /></svg></button>
+        </div>
+      </section>
+      <section class="contact" id="contact" aria-label="Контакты" hidden>
+        <button class="close contact__close" id="contact-close" type="button" aria-label="Закрыть контакты" data-label="close">
+          <img src="./desktop/assets/close.svg" alt="" width="18.7071" height="19.4142" />
+        </button>
+        <h1 class="contact__art" tabindex="-1"><span class="sr-only">Don't panic</span><img src="./desktop/assets/dont-panic.webp" alt="" width="2752" height="1536" /></h1>
+        <a class="contact__email" href="mailto:rerun.agency@gmail.com">rerun.agency@gmail.com</a>
+        <p class="contact__caption" data-copy="contact.caption">напишите, что у вас горит</p>
+        <a class="contact__telegram" href="https://t.me/rerun_ag" target="_blank" rel="noreferrer">
+          <img src="./desktop/assets/orange-tape.webp" alt="" width="1856" height="3863" /><span>telegram</span>
+        </a>
       </section>
     </main>
-
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "./vendor/three.module.js",
-          "three/addons/": "./vendor/"
-        }
-      }
-    </script>
-
-    <script src="./script.js"></script>
-    <script type="module" src="./scene/mount.js"></script>
+    <div class="intro" id="intro" aria-hidden="true">
+      <div class="intro__art">
+        <img class="intro__one" src="./desktop/assets/logo-1.webp" alt="" width="1132" height="544" />
+        <div class="intro__two">
+          <img class="intro__piece intro__piece--a" src="./desktop/assets/logo-2-a.webp" alt="" />
+          <img class="intro__piece intro__piece--b" src="./desktop/assets/logo-2-b.webp" alt="" />
+          <img class="intro__piece intro__piece--c" src="./desktop/assets/logo-2-c.webp" alt="" />
+          <img class="intro__piece intro__piece--d" src="./desktop/assets/logo-2-d.webp" alt="" />
+          <img class="intro__piece intro__piece--e" src="./desktop/assets/logo-2-e.webp" alt="" />
+        </div>
+        <img class="intro__three" src="./desktop/assets/logo-3.webp" alt="" width="1288" height="442" />
+        <p class="intro__caption" data-copy="home.captionInline">команда внешнего пост-продакшена</p>
+      </div>
+      <button class="intro__skip" id="intro-skip" type="button" data-copy="skip">пропустить</button>
+    </div>
+    <p class="sr-only" id="announcement" aria-live="polite"></p>
+    <noscript><div class="no-script">re//run — команда внешнего пост-продакшена. <a href="mailto:rerun.agency@gmail.com">rerun.agency@gmail.com</a></div></noscript>
+    <script type="module" src="./desktop/app.js"></script>
   </body>
 </html>
