@@ -114,7 +114,7 @@ body[data-stage-motion=true] .contact{will-change:transform,opacity}
 .contact__telegram img{position:absolute;width:calc(147.041 * var(--unit));height:calc(306.045 * var(--unit));object-fit:fill;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-96.67deg);z-index:-1;transition:transform .25s cubic-bezier(.16,1,.3,1)}
 .contact__telegram span{position:absolute;left:calc(93.78 * var(--unit));top:calc(84.64 * var(--unit));font:500 calc(32 * var(--unit))/calc(40 * var(--unit)) Onest,sans-serif;white-space:nowrap;transform:translateY(calc(1 * var(--unit)))}
 .contact__telegram:hover img{transform:translate(-50%,-50%) rotate(-91deg) scale(1.04)}
-.scene-fallback{position:absolute;inset:17% 19% 12%;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-content:center;overflow:auto;transform:scale(calc(1 - .38 * var(--space-depth,0)));opacity:calc(1 - var(--space-depth,0))}
+.scene-fallback{position:absolute;inset:17% 19% 12%;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-content:center;overflow:auto;transform:scale(var(--installation-scale,1));opacity:var(--installation-opacity,1)}
 .scene-fallback button{aspect-ratio:1.3;position:relative;background:#191610;border:6px solid #514839;box-shadow:3px 8px 16px #0008;overflow:hidden}
 .scene-fallback img{width:100%;height:100%;object-fit:cover;opacity:.8}
 .scene-fallback button:hover img{opacity:1}

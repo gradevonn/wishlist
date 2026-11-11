@@ -1,4 +1,5 @@
 import { projects } from './projects.js';
+import { contactSceneState, contactEase } from './contact-motion.js?v=20261111-retreat';
 
 const $ = (selector) => document.querySelector(selector);
 const all = (selector) => [...document.querySelectorAll(selector)];
@@ -62,6 +63,7 @@ let contactFocusPending = false;
 let stageReturnFocus = null;
 let contactDirection = 0;
 let contactSnapping = false;
+let contactTween = null;
 let routeInitialized = false;
 const text = (field) => field?.[lang] || '';
 const t = (key) => copy[lang][key] || key;
@@ -75,9 +77,12 @@ const sceneIsVisible = () => route === '/' || route === '/contact' || route.star
 // The contact hash is only a shareable endpoint, never a replacement for the canvas.
 function syncContactStage() {
   const p = contactProgress;
+  const motion = contactSceneState(p);
   const style = document.body.style;
   style.setProperty('--contact-shift', `${(1 - p) * 100}dvh`);
-  style.setProperty('--contact-opacity', smooth(.10, .72, p).toFixed(4));
+  style.setProperty('--contact-opacity', motion.contactOpacity.toFixed(4));
+  style.setProperty('--installation-opacity', motion.opacity.toFixed(4));
+  style.setProperty('--installation-scale', motion.projectedScale.toFixed(4));
   style.setProperty('--stage-ui-opacity', (1 - smooth(0, .28, p)).toFixed(4));
   style.setProperty('--space-depth', p.toFixed(4));
   document.body.dataset.contactProgress = p.toFixed(3);
@@ -102,8 +107,18 @@ function contactTick(time) {
   contactFrame = null;
   const dt = Math.min((time - (contactLastTime || time - 16)) / 1000, .04);
   contactLastTime = time;
-  contactProgress = reduced.matches ? contactTarget : contactProgress + (contactTarget - contactProgress) * (1 - Math.exp(-dt * 11));
-  if (Math.abs(contactTarget - contactProgress) < .0008) contactProgress = contactTarget;
+  if (reduced.matches) {
+    contactProgress = contactTarget;
+    contactTween = null;
+  } else if (contactTween) {
+    contactTween.elapsed = Math.min(contactTween.duration, contactTween.elapsed + dt);
+    const fraction = contactTween.elapsed / contactTween.duration;
+    contactProgress = contactTween.from + (contactTarget - contactTween.from) * contactEase(fraction);
+    if (fraction === 1) { contactProgress = contactTarget; contactTween = null; }
+  } else {
+    contactProgress += (contactTarget - contactProgress) * (1 - Math.exp(-dt * 11));
+  }
+  if (!contactTween && Math.abs(contactTarget - contactProgress) < .0008) contactProgress = contactTarget;
   syncContactStage();
   if (contactProgress !== contactTarget) contactFrame = requestAnimationFrame(contactTick);
   else {
@@ -115,11 +130,16 @@ function contactTick(time) {
     }
   }
 }
-function moveContact(target, { instant = false, gesture = false } = {}) {
+function moveContact(target, { instant = false, gesture = false, duration = null } = {}) {
   contactTarget = clamp(target);
   contactGestureCommit = gesture;
   if (!gesture) contactSnapping = false;
-  if (instant || reduced.matches) contactProgress = contactTarget;
+  if (instant || reduced.matches || contactProgress === contactTarget) {
+    contactProgress = contactTarget;
+    contactTween = null;
+  } else if (!gesture || contactSnapping || duration !== null) {
+    contactTween = { from: contactProgress, elapsed: 0, duration: duration ?? (gesture ? .38 : .76) };
+  } else contactTween = null;
   syncContactStage();
   if (!contactFrame) contactFrame = requestAnimationFrame(contactTick);
 }
@@ -132,7 +152,7 @@ function settleContactGesture() {
 }
 function scrubContact(delta, { touch = false } = {}) {
   const direction = Math.sign(delta);
-  const base = contactSnapping || contactDirection && direction !== contactDirection ? contactProgress : contactTarget;
+  const base = contactTween || contactSnapping || contactDirection && direction !== contactDirection ? contactProgress : contactTarget;
   contactSnapping = false;
   contactDirection = direction;
   clearTimeout(contactSnapTimer);
@@ -323,7 +343,7 @@ async function mountScene() {
       showFallback();
       return;
     }
-    const { DesktopScene } = await import('./scene.js');
+    const { DesktopScene } = await import('./scene.js?v=20261111-retreat');
     scene = new DesktopScene({
       canvas: ui.canvas,
       projects,
@@ -415,7 +435,7 @@ window.addEventListener('keydown', (event) => {
     if (route !== '/') { event.preventDefault(); closeView(); }
   }
   if (introDone && (route === '/' && event.key === 'ArrowDown' || route === '/contact' && event.key === 'ArrowUp')) {
-    event.preventDefault(); clearTimeout(contactSnapTimer); moveContact(route === '/' ? 1 : 0, { instant: true, gesture: true });
+    event.preventDefault(); clearTimeout(contactSnapTimer); moveContact(route === '/' ? 1 : 0, { gesture: true, duration: .76 });
   }
   if (projectIndex >= 0 && !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
     if (event.key === 'ArrowRight') { event.preventDefault(); nextProject(1); }
