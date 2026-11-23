@@ -16,7 +16,7 @@
     </script>
     <link rel="preload" as="font" href="./desktop/assets/Iosevka-Regular.woff2" type="font/woff2" crossorigin />
     <link rel="preload" as="image" href="./desktop/assets/logo-1.webp" />
-    <link rel="stylesheet" href="./desktop/styles.css?v=20261111-retreat" />
+    <link rel="stylesheet" href="./desktop/styles.css?v=20261123-intro-depth-1" />
     <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
   </head>
   <body data-view="home">
@@ -24,7 +24,7 @@
     <a class="skip-link" href="#main">Перейти к содержимому</a>
     <header class="header" aria-label="Основная навигация">
       <a class="header__brand" href="#/" aria-label="re//run — главная">
-        <img src="./desktop/assets/logo-1.webp" alt="re//run" width="1132" height="544" />
+        <img src="./desktop/assets/logo-1.webp" alt="re//run" width="1132" height="544" decoding="async" fetchpriority="high" />
       </a>
       <nav class="header__nav">
         <a class="nav__about" href="#/about" data-copy="nav.about">о нас</a>
@@ -76,17 +76,17 @@
         <button class="close contact__close" id="contact-close" type="button" aria-label="Закрыть контакты" data-label="close">
           <img src="./desktop/assets/close.svg" alt="" width="18.7071" height="19.4142" />
         </button>
-        <h1 class="contact__art" tabindex="-1"><span class="sr-only">Don't panic</span><img src="./desktop/assets/dont-panic.webp" alt="" width="2752" height="1536" /></h1>
+        <h1 class="contact__art" tabindex="-1"><span class="sr-only">Don't panic</span><img data-src="./desktop/assets/dont-panic.webp" alt="" width="2752" height="1536" loading="lazy" decoding="async" /></h1>
         <a class="contact__email" href="mailto:rerun.agency@gmail.com">rerun.agency@gmail.com</a>
         <p class="contact__caption" data-copy="contact.caption">напишите, что у вас горит</p>
         <a class="contact__telegram" href="https://t.me/rerun_ag" target="_blank" rel="noreferrer">
-          <img src="./desktop/assets/orange-tape.webp" alt="" width="1856" height="3863" /><span>telegram</span>
+          <img data-src="./desktop/assets/orange-tape.webp" alt="" width="640" height="1333" loading="lazy" decoding="async" /><span>telegram</span>
         </a>
       </section>
     </main>
     <div class="intro" id="intro" aria-hidden="true">
       <div class="intro__art">
-        <img class="intro__one" src="./desktop/assets/logo-1.webp" alt="" width="1132" height="544" />
+        <img class="intro__one" src="./desktop/assets/logo-1.webp" alt="" width="1132" height="544" decoding="async" fetchpriority="high" />
         <div class="intro__two">
           <img class="intro__piece intro__piece--a" src="./desktop/assets/logo-2-a.webp" alt="" />
           <img class="intro__piece intro__piece--b" src="./desktop/assets/logo-2-b.webp" alt="" />
@@ -101,6 +101,6 @@
     </div>
     <p class="sr-only" id="announcement" aria-live="polite"></p>
     <noscript><div class="no-script">re//run — команда внешнего пост-продакшена. <a href="mailto:rerun.agency@gmail.com">rerun.agency@gmail.com</a></div></noscript>
-    <script type="module" src="./desktop/app.js?v=20261111-retreat"></script>
+    <script type="module" src="./desktop/app.js?v=20261123-intro-depth-1"></script>
   </body>
 </html>

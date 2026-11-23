@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 export const HOME_WIDTH = 19.2;
-const HOME_POSITION = new THREE.Vector3(0, 2.4, 23);
-const HOME_TARGET = new THREE.Vector3(0, 0, -.5);
+const HOME_POSITION = new THREE.Vector3(0, 1.35, 23);
+const HOME_TARGET = new THREE.Vector3(.04, .02, -.5);
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 export function homeCameraPose() {
@@ -29,9 +29,9 @@ export function frontCameraPose({ model, body, camera }) {
   const size = local.getSize(new THREE.Vector3()).multiply(scale);
   const centre = local.getCenter(new THREE.Vector3()); centre.z = local.max.z; centre.applyMatrix4(body.matrixWorld);
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), tanH = tanV * camera.aspect;
-  const distance = Math.max(size.x / (2 * tanH * (780 / 1920)), size.y / (2 * tanV * (620 / 956)), 2.3);
+  const distance = Math.max(size.x / (2 * tanH * (704 / 1920)), size.y / (2 * tanV * (604 / 956)), 2.3);
   return {
-    position: centre.clone().addScaledVector(normal, distance),
+    position: centre.clone().addScaledVector(normal, distance).addScaledVector(up, -.040 * distance * tanV),
     quaternion: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, normal)),
     filmOffset: (1 - 2 * 690 / 1920) * tanH * camera.getFilmWidth(),
     normal, centre, distance,

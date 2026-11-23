@@ -1,3 +1,5 @@
+// RETIRED: historical projected-photo implementation; not imported by the current desktop scene.
+// Current runtime uses physical-tv.js / physical-rack.js / physical-screen.js. See README.md and ../_preview/physical/QA.md.
 import * as THREE from 'three';
 
 const DEFAULT_MEDIA_ASPECT = 16 / 9;

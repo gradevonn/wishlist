@@ -1,5 +1,6 @@
-import { projects } from './projects.js';
-import { contactSceneState, contactEase } from './contact-motion.js?v=20261111-retreat';
+import { projects } from './projects.js?v=20261123-intro-depth-1';
+import { contactSceneState, contactEase } from './contact-motion.js?v=20261123-intro-depth-1';
+import { INTRO_TIMING, playIntro, mountIntroPreview } from './intro-motion.js?v=20261123-intro-depth-1';
 
 const $ = (selector) => document.querySelector(selector);
 const all = (selector) => [...document.querySelectorAll(selector)];
@@ -53,6 +54,14 @@ let returnFromProject = '/';
 let returnFromContact = '/';
 let focusOrigin = null;
 let introTimer;
+let introSequence = null;
+let disposeIntroPreview = null;
+let introRevealRequested = false;
+let introSceneRevealed = false;
+let introFinishRequested = false;
+let resolveIntroReady;
+const introReady = new Promise(resolve => { resolveIntroReady = resolve; });
+let sceneMountGeneration = 0;
 let contactProgress = 0;
 let contactTarget = 0;
 let contactFrame = null;
@@ -73,10 +82,20 @@ const clamp = (value) => Math.max(0, Math.min(1, value));
 const smooth = (a, b, value) => { const x = clamp((value - a) / (b - a)); return x * x * (3 - 2 * x); };
 const sceneIsVisible = () => route === '/' || route === '/contact' || route.startsWith('/p/');
 
+function hydrateContactImages() {
+  ui.contact.querySelectorAll('img[data-src]').forEach(image => {
+    image.loading = 'eager';
+    image.decoding = 'async';
+    image.src = image.dataset.src;
+    delete image.dataset.src;
+  });
+}
+
 // One continuous stage: wheel/touch controls the same progress in both directions.
 // The contact hash is only a shareable endpoint, never a replacement for the canvas.
 function syncContactStage() {
   const p = contactProgress;
+  if (p > 0) hydrateContactImages();
   const motion = contactSceneState(p);
   const style = document.body.style;
   style.setProperty('--contact-shift', `${(1 - p) * 100}dvh`);
@@ -314,36 +333,88 @@ function applyRoute(moveFocus = false) {
   }
 }
 
+function revealIntroScene() {
+  if (!introRevealRequested || !sceneReady || !scene || introSceneRevealed) return;
+  introSceneRevealed = true;
+  scene.reveal({ fromDepth: !introDone, instant: introDone,
+    duration: INTRO_TIMING.duration - INTRO_TIMING.flightAt });
+}
+function beginIntroReveal() {
+  introRevealRequested = true;
+  document.body.dataset.introRevealing = 'true';
+  revealIntroScene();
+}
+function showIntro() {
+  document.body.classList.add('is-intro');
+  ui.intro.hidden = false;
+  ui.intro.setAttribute('aria-hidden', 'false');
+  ui.header.inert = true;
+  ui.main.inert = true;
+}
 function endIntro() {
   if (introDone) return;
+  // Skip the animation, not the loading cover. In particular ?boot=off and
+  // Escape must not expose a black canvas before its first render is ready.
+  if (!sceneReady && ui.fallback.hidden && sceneIsVisible()) {
+    introFinishRequested = true;
+    introSequence?.cancel();
+    introSequence = null;
+    disposeIntroPreview?.();
+    disposeIntroPreview = null;
+    showIntro();
+    return;
+  }
   introDone = true;
   clearTimeout(introTimer);
+  introSequence?.cancel();
+  disposeIntroPreview?.();
+  introSequence = null;
+  delete document.body.dataset.introRevealing;
   document.body.classList.remove('is-intro');
   ui.intro.hidden = true;
   ui.intro.setAttribute('aria-hidden', 'true');
   ui.header.inert = route === '/contact';
   ui.main.inert = false;
   syncContactStage();
-  if (sceneReady) scene.reveal();
+  introRevealRequested = true;
+  revealIntroScene();
+  scene?.finishReveal();
   if (document.activeElement === $('#intro-skip')) $('.header__brand').focus({ preventScroll: true });
 }
 function startIntro() {
   const params = new URLSearchParams(location.search);
   const skip = params.get('boot') === 'off' || reduced.matches || route !== '/';
   if (skip) { endIntro(); return; }
-  document.body.classList.add('is-intro');
-  ui.intro.setAttribute('aria-hidden', 'false');
-  ui.header.inert = true;
-  ui.main.inert = true;
-  introTimer = setTimeout(endIntro, 3150);
+  showIntro();
+  const preview = params.get('intro-preview') === '1';
+  // Decode every collage before its short visibility window. Waiting only
+  // for logo 1 let a busy first load skip the later variants entirely.
+  const decoded = Promise.allSettled([...ui.intro.querySelectorAll('img')].map(image =>
+    image.decode ? image.decode() : Promise.resolve()));
+  decoded.then(() => {
+    if (introDone || introFinishRequested) return;
+    try {
+      introSequence = playIntro({ element: ui.intro, onReveal: beginIntroReveal,
+        onComplete: preview ? () => {} : endIntro, autoplay: !preview,
+        waitForReveal: preview ? null : introReady });
+      if (preview) disposeIntroPreview = mountIntroPreview(introSequence, endIntro);
+    } catch { endIntro(); }
+  });
 }
 async function mountScene() {
+  const generation = ++sceneMountGeneration;
+  // A failed or stalled asset request must leave a usable portfolio, rather
+  // than retain an opaque loading layer forever.
+  introTimer = setTimeout(() => {
+    if (generation === sceneMountGeneration && !sceneReady) showFallback();
+  }, 20000);
   try {
     if (new URLSearchParams(location.search).get('scene') === 'off') {
       showFallback();
       return;
     }
-    const { DesktopScene } = await import('./scene.js?v=20261111-retreat');
+    const { DesktopScene } = await import('./scene.js?v=20261123-intro-depth-1');
+    if (generation !== sceneMountGeneration) return;
     scene = new DesktopScene({
       canvas: ui.canvas,
       projects,
@@ -358,8 +429,12 @@ async function mountScene() {
       onReady() {
         // The constructor may call this synchronously before its return value is assigned.
         queueMicrotask(() => {
+          if (generation !== sceneMountGeneration) return;
           sceneReady = true;
-          if (introDone) scene?.reveal();
+          clearTimeout(introTimer);
+          resolveIntroReady();
+          if (introFinishRequested) endIntro();
+          revealIntroScene();
           if (projectIndex >= 0) scene?.focus(projectIndex);
           scene?.setContactProgress(contactProgress);
         });
@@ -375,6 +450,9 @@ async function mountScene() {
 }
 
 function showFallback() {
+  sceneMountGeneration++;
+  clearTimeout(introTimer);
+  resolveIntroReady();
   scene?.dispose();
   scene = null;
   sceneReady = false;
